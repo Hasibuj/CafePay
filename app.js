@@ -6,7 +6,7 @@ const ARC_CHAIN_CONFIG = {
     blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
-const CONTRACT_ADDRESS = "0xF83506D10f4416953a6b7CF4cdC5a970CE49B52e";
+const CONTRACT_ADDRESS = "0xF83506D10f4416953a6b7CF4cdc5a970CE49B52e";
 const USDC_ADDRESS     = "0x3600000000000000000000000000000000000000";
 
 const ABI_CAFEPAY = [
@@ -122,13 +122,13 @@ async function switchNetwork() {
     try {
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: ARC_CHAIN_CONFIG.chainId }]
+            params: [{ chainId: ARC_CHAIN_CONFIG.chainId }],
         });
     } catch (err) {
         if (err.code === 4902) {
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
-                params: [ARC_CHAIN_CONFIG]
+                params: [ARC_CHAIN_CONFIG],
             });
         }
     }
@@ -173,7 +173,10 @@ async function loadShopsDirectory() {
 
                     const logoUrl = localStorage.getItem(`shop_logo_${cleanAddr}`);
                     const customTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
-                    const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-14 h-14 rounded-2xl object-cover border border-slate-700 shadow-sm" alt="Logo">` : `<div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-2xl shadow-inner">☕</div>`;
+                    
+                    const logoElement = logoUrl 
+                        ? `<img src="${logoUrl}" class="w-14 h-14 rounded-2xl object-cover border border-slate-700 shadow-sm" alt="Logo">` 
+                        : `<div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-2xl shadow-inner">☕</div>`;
 
                     const shopNameLower = shopName.toLowerCase();
                     let assignedCategory = 'coffee';
@@ -184,15 +187,14 @@ async function loadShopsDirectory() {
                     }
 
                     shopsHtml += `
-                        <div onclick="openStorefront('${cleanAddr}')" data-category="${assignedCategory}" class="bg-slate-800/40 backdrop-blur-md p-6 rounded-3xl border border-slate-800/80 shadow-lg hover:bg-slate-800/70 hover:border-amber-500/60 hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group">
-                            <div>
-                                <div class="mb-4">${logoElement}</div>
-                                <h3 class="shop-title text-xl font-black text-white group-hover:text-amber-400 transition">${shopName}</h3>
-                                <p class="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">${customTagline}</p>
-                            </div>
-                            <button class="mt-6 w-full bg-slate-900 text-amber-400 font-bold py-2.5 rounded-xl text-xs border border-slate-700 group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-500 transition">View Menu</button>
+                    <div onclick="openStorefront('${cleanAddr}')" data-category="${assignedCategory}" class="bg-slate-800/40 backdrop-blur-md p-6 rounded-3xl border border-slate-800/80 shadow-lg hover:bg-slate-800/70 hover:border-amber-500/60 hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group">
+                        <div>
+                            <div class="mb-4">${logoElement}</div>
+                            <h3 class="shop-title text-xl font-black text-white group-hover:text-amber-400 transition">${shopName}</h3>
+                            <p class="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">${customTagline}</p>
                         </div>
-                    `;
+                        <button class="mt-6 w-full bg-slate-900 text-amber-400 font-bold py-2.5 rounded-xl text-xs border border-slate-700 group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-500 transition">View Menu</button>
+                    </div>`;
                 }
             } catch (innerErr) {
                 console.error("Error parsing shop:", innerErr);
@@ -208,28 +210,23 @@ async function loadShopsDirectory() {
 
 function filterByCategory(category) {
     currentCategory = category;
-
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.className = "category-btn bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-700 transition whitespace-nowrap";
     });
     if (event && event.currentTarget) {
         event.currentTarget.className = "category-btn bg-amber-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition whitespace-nowrap shadow-md shadow-amber-500/20";
     }
-
     applyFilters();
 }
 
 function applyFilters() {
     const searchQuery = document.getElementById('search-input')?.value.toLowerCase() || "";
     const cards = document.querySelectorAll('#shops-grid > div');
-
     cards.forEach(card => {
         const title = card.querySelector('.shop-title')?.innerText.toLowerCase() || "";
         const categoryAttr = card.getAttribute('data-category') || 'coffee';
-
         const matchesSearch = title.includes(searchQuery);
         const matchesCategory = (currentCategory === 'all' || categoryAttr === currentCategory);
-
         if (matchesSearch && matchesCategory) {
             card.style.display = "flex";
         } else {
@@ -285,9 +282,11 @@ async function showCustomerStoreView(shopOwner) {
             const itemDesc = localStorage.getItem(`item_desc_${cleanOwner}_${item.id}`) || "";
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
 
-            const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-40 object-cover rounded-2xl mb-4 border border-slate-700">` : `<div class="w-full h-40 bg-slate-900 rounded-2xl mb-4 flex items-center justify-center text-4xl border border-slate-700">🍔</div>`;
-            const isPizza = itemName.toLowerCase().includes('pizza');
+            const imgElement = foodImgUrl 
+                ? `<img src="${foodImgUrl}" class="w-full h-40 object-cover rounded-2xl mb-4 border border-slate-700">` 
+                : `<div class="w-full h-40 bg-slate-900 rounded-2xl mb-4 flex items-center justify-center text-4xl border border-slate-700">🍔</div>`;
 
+            const isPizza = itemName.toLowerCase().includes('pizza');
             const card = document.createElement('div');
             card.className = "bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-800 shadow-lg flex flex-col justify-between";
             card.innerHTML = `
@@ -297,14 +296,14 @@ async function showCustomerStoreView(shopOwner) {
                     <p class="text-xs text-slate-400 mt-1 mb-4 leading-relaxed">${itemDesc}</p>
                     
                     ${isPizza ? `
-                        <div class="mb-4">
-                            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Select Size:</label>
-                            <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:outline-none focus:border-amber-500 transition">
-                                <option value="regular">Regular (Base Price)</option>
-                                <option value="medium">Medium</option>
-                                <option value="large">Large</option>
-                            </select>
-                        </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Select Size:</label>
+                        <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:outline-none focus:border-amber-500 transition">
+                            <option value="regular">Regular (Base Price)</option>
+                            <option value="medium">Medium</option>
+                            <option value="large">Large</option>
+                        </select>
+                    </div>
                     ` : ''}
 
                     <div class="mb-4 flex items-center justify-between">
@@ -315,7 +314,6 @@ async function showCustomerStoreView(shopOwner) {
                             <button onclick="adjustQty('${cleanOwner}', ${item.id}, 1, ${basePrice})" class="w-8 h-8 bg-slate-900 border border-slate-700 rounded-xl font-bold text-slate-300 hover:bg-slate-700 transition">+</button>
                         </div>
                     </div>
-
                     <div class="mb-2 text-xs text-slate-400">Total Price: <span id="price-display-${cleanOwner}-${item.id}" class="text-amber-400 font-black text-base">${basePrice.toFixed(2)}</span> USDC</div>
                 </div>
                 <button onclick="buyCustomItem('${cleanOwner}', ${item.id})" class="mt-4 w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3 rounded-xl transition text-xs shadow-md shadow-amber-500/20">Pay with USDC</button>
@@ -330,7 +328,6 @@ async function showCustomerStoreView(shopOwner) {
 function calculateCurrentPrice(shopOwner, itemId, basePrice) {
     const sizeSelect = document.getElementById(`size-${shopOwner}-${itemId}`);
     let finalUnitPrice = basePrice;
-
     if (sizeSelect) {
         const selectedSize = sizeSelect.value;
         if (selectedSize === 'medium') {
@@ -341,10 +338,8 @@ function calculateCurrentPrice(shopOwner, itemId, basePrice) {
             finalUnitPrice = customLarge ? parseFloat(customLarge) : basePrice + 5;
         }
     }
-
     const qtySpan = document.getElementById(`qty-${shopOwner}-${itemId}`);
     const qty = qtySpan ? parseInt(qtySpan.innerText) : 1;
-
     return finalUnitPrice * qty;
 }
 
@@ -372,7 +367,6 @@ async function buyCustomItem(shopOwner, itemIndex) {
         const menu = await readOnlyCafePayContract.getShopMenu(shopOwner);
         const itemObj = menu.find(i => Number(i.id) === Number(itemIndex));
         const basePrice = basePriceStr ? parseFloat(basePriceStr) : parseFloat(ethers.formatUnits(itemObj.price, 6));
-        
         const finalAmount = calculateCurrentPrice(shopOwner, itemIndex, basePrice);
         const parsedAmount = ethers.parseUnits(finalAmount.toString(), 6);
 
@@ -388,43 +382,49 @@ async function buyCustomItem(shopOwner, itemIndex) {
         const shop = await readOnlyCafePayContract.shops(shopOwner);
         const shopName = shop.shopName || shop[0] || "CafePay Shop";
         const itemName = localStorage.getItem(`item_name_${shopOwner}_${itemIndex}`) || itemObj.name;
+        const qtySpan = document.getElementById(`qty-${shopOwner}-${itemIndex}`);
+        const qty = qtySpan ? parseInt(qtySpan.innerText) : 1;
+
+        // Save Order to LocalStorage for Owner Dashboard
+        const orderKey = `cafepay_orders_${shopOwner.toLowerCase()}`;
+        const existingOrders = JSON.parse(localStorage.getItem(orderKey) || '[]');
+        existingOrders.unshift({
+            buyer: userAddress,
+            itemName: itemName,
+            qty: qty,
+            totalAmount: finalAmount.toFixed(2),
+            timestamp: new Date().toLocaleTimeString()
+        });
+        localStorage.setItem(orderKey, JSON.stringify(existingOrders));
+
         const txHash = receipt.hash;
-
         const receiptHTML = `
-            <div id="receipt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div id="receipt-card-content" class="bg-slate-900 rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl border border-slate-800 text-center">
-                    <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-500/30">✅</div>
-                    <h3 class="text-2xl font-black text-white mb-1">Payment Successful!</h3>
-                    <p class="text-xs text-slate-400 mb-6">Digital Receipt from ${shopName}</p>
-                    
-                    <div class="bg-slate-800/60 rounded-2xl p-4 text-left space-y-3 mb-6 border border-slate-800">
-                        <div class="flex justify-between text-xs">
-                            <span class="text-slate-400">Item:</span>
-                            <span class="font-bold text-white">${itemName}</span>
-                        </div>
-                        <div class="flex justify-between text-xs">
-                            <span class="text-slate-400">Total Paid:</span>
-                            <span class="font-bold text-amber-400">${finalAmount.toFixed(2)} USDC</span>
-                        </div>
-                        <div class="flex justify-between text-xs items-center">
-                            <span class="text-slate-400">Tx Hash:</span>
-                            <a href="${ARC_CHAIN_CONFIG.blockExplorerUrls[0]}/tx/${txHash}" target="_blank" class="font-mono text-amber-400 underline truncate max-w-[150px]">${txHash}</a>
-                        </div>
+        <div id="receipt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div id="receipt-card-content" class="bg-slate-900 rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl border border-slate-800 text-center">
+                <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-500/30">✅</div>
+                <h3 class="text-2xl font-black text-white mb-1">Payment Successful!</h3>
+                <p class="text-xs text-slate-400 mb-6">Digital Receipt from ${shopName}</p>
+                <div class="bg-slate-800/60 rounded-2xl p-4 text-left space-y-3 mb-6 border border-slate-800">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-400">Item:</span>
+                        <span class="font-bold text-white">${itemName} (Qty: ${qty})</span>
                     </div>
-
-                    <div class="flex gap-2">
-                        <button onclick="downloadReceiptImage()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition text-xs border border-slate-700">
-                            Download Receipt
-                        </button>
-                        <button onclick="document.getElementById('receipt-modal').remove(); window.location.reload();" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3 rounded-xl transition text-xs shadow-md shadow-amber-500/20">
-                            Back to Menu
-                        </button>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-400">Total Paid:</span>
+                        <span class="font-bold text-amber-400">${finalAmount.toFixed(2)} USDC</span>
+                    </div>
+                    <div class="flex justify-between text-xs items-center">
+                        <span class="text-slate-400">Tx Hash:</span>
+                        <a href="${ARC_CHAIN_CONFIG.blockExplorerUrls[0]}/tx/${txHash}" target="_blank" class="font-mono text-amber-400 underline truncate max-w-[150px]">${txHash}</a>
                     </div>
                 </div>
+                <div class="flex gap-2">
+                    <button onclick="downloadReceiptImage()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition text-xs border border-slate-700">Download Receipt</button>
+                    <button onclick="document.getElementById('receipt-modal').remove(); window.location.reload();" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3 rounded-xl transition text-xs shadow-md shadow-amber-500/20">Back to Menu</button>
+                </div>
             </div>
-        `;
+        </div>`;
         document.body.insertAdjacentHTML('beforeend', receiptHTML);
-
     } catch (err) {
         alert("Transaction failed: " + (err.reason || err.message));
     }
@@ -441,6 +441,7 @@ async function loadOwnerDashboardMenu() {
         const dashboardCard = document.getElementById('card-dashboard');
         if (!dashboardCard) return;
 
+        // QR Code & Tagline Section
         let qrContainer = document.getElementById('owner-qr-section');
         if (!qrContainer) {
             qrContainer = document.createElement('div');
@@ -469,6 +470,37 @@ async function loadOwnerDashboardMenu() {
             </div>
         `;
 
+        // Owner Live Orders History Section
+        let ordersContainer = document.getElementById('owner-orders-section');
+        if (!ordersContainer) {
+            ordersContainer = document.createElement('div');
+            ordersContainer.id = 'owner-orders-section';
+            ordersContainer.className = "mt-6 bg-slate-900 p-5 rounded-2xl border border-slate-800";
+            dashboardCard.appendChild(ordersContainer);
+        }
+
+        const orders = JSON.parse(localStorage.getItem(`cafepay_orders_${cleanAddr.toLowerCase()}`) || '[]');
+        let ordersHtml = `<h4 class='font-bold text-white text-base mb-3'>Customer Orders History (${orders.length})</h4>`;
+        
+        if (orders.length === 0) {
+            ordersHtml += `<p class='text-xs text-slate-500'>No orders received yet.</p>`;
+        } else {
+            ordersHtml += `<div class="space-y-2 max-h-48 overflow-y-auto pr-1">`;
+            orders.forEach(ord => {
+                ordersHtml += `
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                    <div>
+                        <p class="font-bold text-white">${ord.itemName} <span class="text-amber-400 font-semibold">(x${ord.qty})</span></p>
+                        <p class="text-[10px] text-slate-400">Buyer: ${ord.buyer.substring(0, 6)}...${ord.buyer.substring(38)} • <span class="text-slate-500">${ord.timestamp}</span></p>
+                    </div>
+                    <span class="text-amber-400 font-black">${ord.totalAmount} USDC</span>
+                </div>`;
+            });
+            ordersHtml += `</div>`;
+        }
+        ordersContainer.innerHTML = ordersHtml;
+
+        // Existing Menu Items Management
         const menu = await readOnlyCafePayContract.getShopMenu(cleanAddr);
         let dashMenuContainer = document.getElementById('owner-menu-list');
         if (!dashMenuContainer) {
@@ -478,9 +510,10 @@ async function loadOwnerDashboardMenu() {
             dashboardCard.appendChild(dashMenuContainer);
         }
 
-        dashMenuContainer.innerHTML = "<h4 class='font-bold text-white text-base'>Manage Existing Menu Items</h4>";
+        let menuHtml = "<h4 class='font-bold text-white text-base mb-3'>Manage Existing Menu Items</h4>";
         if (!menu || menu.length === 0) {
-            dashMenuContainer.innerHTML += "<p class='text-xs text-slate-500 mt-2'>No items added yet.</p>";
+            menuHtml += "<p class='text-xs text-slate-500'>No items added yet.</p>";
+            dashMenuContainer.innerHTML = menuHtml;
             return;
         }
 
@@ -491,159 +524,107 @@ async function loadOwnerDashboardMenu() {
             const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${item.id}`) !== 'false';
             const currentName = localStorage.getItem(`item_name_${cleanAddr}_${item.id}`) || item.name;
             const currentPrice = localStorage.getItem(`item_price_${cleanAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
-            const currentDesc = localStorage.getItem(`item_desc_${cleanAddr}_${item.id}`) || "";
 
-            const itemCard = document.createElement('div');
-            itemCard.className = "flex items-center justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 text-xs";
-            itemCard.innerHTML = `
+            menuHtml += `
+            <div class="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs">
                 <div>
-                    <p class="font-bold text-white text-sm">${currentName} <span class="ml-2 px-2 py-0.5 rounded font-semibold ${isAvailable ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}">${isAvailable ? 'Available' : 'Unavailable'}</span></p>
-                    <p class="text-slate-400 mt-0.5">${currentDesc}</p>
-                    <p class="text-amber-400 font-semibold mt-1">${currentPrice} USDC</p>
+                    <p class="font-bold text-white text-sm">${currentName} <span class="ml-2 px-2 py-0.5 rounded font-semibold ${isAvailable ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}">${isAvailable ? 'Available' : 'Hidden'}</span></p>
+                    <p class="text-xs text-amber-400 font-bold mt-0.5">${currentPrice} USDC</p>
                 </div>
-                <div class="flex gap-1.5 flex-wrap justify-end">
-                    <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${isAvailable ? 'bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
-                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}', '${currentDesc.replace(/'/g, "\\'")} ')" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-xl border border-slate-700 font-semibold transition">Edit</button>
-                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-xl border border-red-500/20 font-semibold transition">Delete</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleItemAvailability('${cleanAddr}', ${item.id})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-3 py-2 rounded-xl transition border border-slate-700">${isAvailable ? 'Hide' : 'Show'}</button>
+                    <button onclick="deleteMenuItem('${cleanAddr}', ${item.id})" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold px-3 py-2 rounded-xl transition border border-red-500/20">Delete</button>
                 </div>
-            `;
-            dashMenuContainer.appendChild(itemCard);
+            </div>`;
         });
+        dashMenuContainer.innerHTML = menuHtml;
     } catch (err) {
-        console.error("Error loading owner menu:", err);
+        console.error("Error loading owner dashboard menu:", err);
     }
 }
 
-function updateShopTagline(shopOwner) {
-    const taglineInput = document.getElementById('input-shop-tagline');
-    if (!taglineInput) return;
-    const newTagline = taglineInput.value.trim();
-    if (!newTagline) return alert("Tagline cannot be empty.");
-    localStorage.setItem(`shop_tagline_${shopOwner}`, newTagline);
+async function updateShopTagline(cleanAddr) {
+    const input = document.getElementById('input-shop-tagline');
+    if (!input) return;
+    const val = input.value.trim();
+    if (!val) return alert("Tagline cannot be empty.");
+    localStorage.setItem(`shop_tagline_${cleanAddr}`, val);
     alert("Shop tagline updated successfully!");
-    loadShopsDirectory();
-}
-
-function toggleAvailability(shopOwner, itemId) {
-    const currentStatus = localStorage.getItem(`item_available_${shopOwner}_${itemId}`) !== 'false';
-    const newStatus = !currentStatus;
-    localStorage.setItem(`item_available_${shopOwner}_${itemId}`, newStatus.toString());
-    alert(newStatus ? "Item is now Available!" : "Item marked as Not Available!");
     loadOwnerDashboardMenu();
 }
 
-function editItemPrompt(shopOwner, itemId, oldName, oldPrice, oldDesc) {
-    const newName = prompt("Enter new item name:", oldName);
-    if (newName === null) return;
-    const newPrice = prompt("Enter base price (Regular) in USDC:", oldPrice);
-    if (newPrice === null) return;
-    const newDesc = prompt("Enter new item description:", oldDesc);
-    if (newDesc === null) return;
-
-    if (!newName.trim() || !newPrice.trim()) {
-        return alert("Name and Price fields cannot be empty.");
-    }
-
-    if (newName.toLowerCase().includes('pizza')) {
-        const medPrice = prompt("Enter Medium size price (USDC):", parseFloat(newPrice) + 2);
-        const largePrice = prompt("Enter Large size price (USDC):", parseFloat(newPrice) + 5);
-        if (medPrice) localStorage.setItem(`item_price_medium_${shopOwner}_${itemId}`, medPrice.trim());
-        if (largePrice) localStorage.setItem(`item_price_large_${shopOwner}_${itemId}`, largePrice.trim());
-    }
-
-    localStorage.setItem(`item_name_${shopOwner}_${itemId}`, newName.trim());
-    localStorage.setItem(`item_price_${shopOwner}_${itemId}`, newPrice.trim());
-    localStorage.setItem(`item_desc_${shopOwner}_${itemId}`, newDesc.trim());
-    alert("Item updated successfully!");
+async function toggleItemAvailability(cleanAddr, itemId) {
+    const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${itemId}`) !== 'false';
+    localStorage.setItem(`item_available_${cleanAddr}_${itemId}`, !isAvailable);
     loadOwnerDashboardMenu();
 }
 
-function deleteItem(shopOwner, itemId) {
-    if (confirm("Are you sure you want to delete this item?")) {
-        localStorage.setItem(`item_deleted_${shopOwner}_${itemId}`, 'true');
-        alert("Item deleted successfully!");
-        loadOwnerDashboardMenu();
-    }
+async function deleteMenuItem(cleanAddr, itemId) {
+    if (!confirm("Are you sure you want to delete this menu item?")) return;
+    localStorage.setItem(`item_deleted_${cleanAddr}_${itemId}`, 'true');
+    loadOwnerDashboardMenu();
 }
 
-async function openOwnerModal() {
-    const modal = document.getElementById('owner-modal');
-    if (modal) modal.classList.remove('hidden');
-    if (userAddress) {
-        await checkOwnerShopStatus();
-    } else {
-        alert("Please connect your wallet first.");
-    }
-}
-
-function closeOwnerModal() {
-    document.getElementById('owner-modal')?.classList.add('hidden');
+async function updateShopLogo() {
+    if (!userAddress) return alert("Connect wallet first.");
+    const base64 = await uploadImageFile('shop-logo-input');
+    if (!base64) return alert("Please select a valid image.");
+    const cleanAddr = ethers.getAddress(userAddress);
+    localStorage.setItem(`shop_logo_${cleanAddr}`, base64);
+    alert("Shop logo updated successfully!");
+    loadOwnerDashboardMenu();
 }
 
 async function registerShop() {
-    if (!cafePayContract) return alert("Please connect wallet first.");
-    const name = document.getElementById('reg-shop-name')?.value.trim();
-    if (!name) return alert("Please enter a shop name.");
+    const nameInput = document.getElementById('reg-shop-name');
+    if (!nameInput || !nameInput.value.trim()) return alert("Enter shop name.");
     try {
-        const tx = await cafePayContract.registerShop(name);
+        const tx = await cafePayContract.registerShop(nameInput.value.trim());
+        alert("Registering shop on blockchain...");
         await tx.wait();
         alert("Shop registered successfully!");
-        await checkOwnerShopStatus();
-        loadShopsDirectory();
+        checkOwnerShopStatus();
     } catch (err) {
         alert("Error: " + (err.reason || err.message));
     }
 }
 
 async function addItem() {
-    if (!cafePayContract) return alert("Please connect wallet first.");
-    const name = document.getElementById('item-name')?.value.trim();
-    const price = document.getElementById('item-price')?.value.trim();
-    const description = document.getElementById('item-desc')?.value.trim() || "";
-
-    if (!name || !price) return alert("Please fill in item name and price.");
-
+    const nameInput = document.getElementById('item-name');
+    const priceInput = document.getElementById('item-price');
+    const descInput = document.getElementById('item-desc');
+    if (!nameInput || !priceInput || !nameInput.value.trim() || !priceInput.value.trim()) {
+        alert("Fill in item name and price.");
+        return;
+    }
     try {
-        const parsedPrice = ethers.parseUnits(price, 6);
-        const tx = await cafePayContract.addItem(name, parsedPrice);
+        const priceVal = ethers.parseUnits(priceInput.value.trim(), 6);
+        const tx = await cafePayContract.addItem(nameInput.value.trim(), priceVal);
+        alert("Adding menu item on blockchain...");
         await tx.wait();
 
-        const menu = await cafePayContract.getShopMenu(userAddress);
-        if (menu && menu.length > 0) {
-            const newItem = menu[menu.length - 1];
-            if (description) {
-                localStorage.setItem(`item_desc_${userAddress}_${newItem.id}`, description);
-            }
-            const imgUrl = await uploadImageFile('item-img-input');
-            if (imgUrl) {
-                localStorage.setItem(`item_img_${userAddress}_${newItem.id}`, imgUrl);
-            }
+        const menu = await readOnlyCafePayContract.getShopMenu(userAddress);
+        const newItemId = menu.length > 0 ? Number(menu[menu.length - 1].id) : 0;
+        const cleanAddr = ethers.getAddress(userAddress);
+
+        localStorage.setItem(`item_name_${cleanAddr}_${newItemId}`, nameInput.value.trim());
+        localStorage.setItem(`item_price_${cleanAddr}_${newItemId}`, priceInput.value.trim());
+        if (descInput && descInput.value.trim()) {
+            localStorage.setItem(`item_desc_${cleanAddr}_${newItemId}`, descInput.value.trim());
         }
 
-        alert("Item added successfully!");
-        document.getElementById('item-name').value = "";
-        document.getElementById('item-price').value = "";
-        if (document.getElementById('item-desc')) document.getElementById('item-desc').value = "";
-        const imgInput = document.getElementById('item-img-input');
-        if (imgInput) imgInput.value = "";
+        const base64Img = await uploadImageFile('item-img-input');
+        if (base64Img) {
+            localStorage.setItem(`item_img_${cleanAddr}_${newItemId}`, base64Img);
+        }
 
+        alert("Menu item added successfully!");
+        nameInput.value = "";
+        priceInput.value = "";
+        if (descInput) descInput.value = "";
         loadOwnerDashboardMenu();
     } catch (err) {
         alert("Error: " + (err.reason || err.message));
-    }
-}
-
-async function updateShopLogo() {
-    if (!userAddress) return alert("Please connect wallet first.");
-    try {
-        const logoUrl = await uploadImageFile('shop-logo-input');
-        if (!logoUrl) return alert("Please select a valid image file.");
-        localStorage.setItem(`shop_logo_${userAddress}`, logoUrl);
-        alert("Shop logo updated successfully!");
-        loadOwnerDashboardMenu();
-        loadShopsDirectory();
-    } catch (err) {
-        alert("Error updating logo: " + err.message);
     }
 }
 
@@ -654,20 +635,29 @@ async function checkOwnerShopStatus() {
         const shop = await readOnlyCafePayContract.shops(cleanAddr);
         const regSection = document.getElementById('section-register-shop');
         const dashSection = document.getElementById('section-owner-dashboard');
+        const ownerTitle = document.getElementById('owner-shop-title');
 
         if (shop && shop.exists) {
-            if (regSection) regSection.classList.add('hidden');
-            if (dashSection) dashSection.classList.remove('hidden');
-            const ownerShopTitle = document.getElementById('owner-shop-title');
-            if (ownerShopTitle) {
-                ownerShopTitle.innerText = shop.shopName || shop[0];
-            }
-            await loadOwnerDashboardMenu();
+            regSection?.classList.add('hidden');
+            dashSection?.classList.remove('hidden');
+            if (ownerTitle) ownerTitle.innerText = `Managing: ${shop.shopName || shop[0]}`;
+            loadOwnerDashboardMenu();
         } else {
-            if (regSection) regSection.classList.remove('hidden');
-            if (dashSection) dashSection.classList.add('hidden');
+            regSection?.classList.remove('hidden');
+            dashSection?.classList.add('hidden');
+            if (ownerTitle) ownerTitle.innerText = "Register your restaurant";
         }
     } catch (err) {
-        console.error("Error checking shop status:", err);
+        console.error("Error checking ownership:", err);
     }
+}
+
+function openOwnerModal() {
+    document.getElementById('owner-modal')?.classList.remove('hidden');
+    checkOwnerShopStatus();
+}
+
+function closeOwnerModal() {
+    document.getElementById('owner-modal')?.classList.add('hidden');
+    routeView();
 }
