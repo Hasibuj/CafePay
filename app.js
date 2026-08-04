@@ -153,12 +153,12 @@ async function showDirectoryView() {
 async function loadShopsDirectory() {
     const grid = document.getElementById('shops-grid');
     if (!grid) return;
-    grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>Loading restaurants from blockchain...</p>";
+    grid.innerHTML = "<div class='col-span-3 text-center py-20 text-slate-500'>Loading restaurants from blockchain...</div>";
 
     try {
         const allShopAddresses = await getAllShops();
         if (!allShopAddresses || allShopAddresses.length === 0) {
-            grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>No restaurants found.</p>";
+            grid.innerHTML = "<div class='col-span-3 text-center py-20 text-slate-500'>No restaurants found.</div>";
             return;
         }
 
@@ -173,7 +173,7 @@ async function loadShopsDirectory() {
 
                     const logoUrl = localStorage.getItem(`shop_logo_${cleanAddr}`);
                     const customTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
-                    const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">` : `<div class="text-3xl">☕</div>`;
+                    const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-14 h-14 rounded-2xl object-cover border border-slate-700 shadow-sm" alt="Logo">` : `<div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-2xl shadow-inner">☕</div>`;
 
                     const shopNameLower = shopName.toLowerCase();
                     let assignedCategory = 'coffee';
@@ -184,13 +184,13 @@ async function loadShopsDirectory() {
                     }
 
                     shopsHtml += `
-                        <div onclick="openStorefront('${cleanAddr}')" data-category="${assignedCategory}" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
+                        <div onclick="openStorefront('${cleanAddr}')" data-category="${assignedCategory}" class="bg-slate-800/50 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-lg hover:border-amber-500/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group">
                             <div>
-                                <div class="mb-3">${logoElement}</div>
-                                <h3 class="shop-title text-xl font-bold text-slate-900">${shopName}</h3>
-                                <p class="text-xs text-slate-500 mt-1 line-clamp-2">${customTagline}</p>
+                                <div class="mb-4">${logoElement}</div>
+                                <h3 class="shop-title text-xl font-black text-white group-hover:text-amber-400 transition">${shopName}</h3>
+                                <p class="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">${customTagline}</p>
                             </div>
-                            <button class="mt-4 w-full bg-amber-50 text-amber-900 font-semibold py-2 rounded-xl text-sm border border-amber-200 hover:bg-amber-100">View Menu</button>
+                            <button class="mt-6 w-full bg-slate-900 text-amber-400 font-bold py-2.5 rounded-xl text-xs border border-slate-700 group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-500 transition">View Menu</button>
                         </div>
                     `;
                 }
@@ -198,11 +198,11 @@ async function loadShopsDirectory() {
                 console.error("Error parsing shop:", innerErr);
             }
         }
-        grid.innerHTML = shopsHtml || "<p class='text-slate-500 col-span-3 text-center'>No active restaurants found.</p>";
+        grid.innerHTML = shopsHtml || "<div class='col-span-3 text-center py-20 text-slate-500'>No active restaurants found.</div>";
         applyFilters();
     } catch (err) {
         console.error("Error loading directory:", err);
-        grid.innerHTML = "<p class='text-red-500 col-span-3 text-center'>Failed to load restaurants.</p>";
+        grid.innerHTML = "<div class='col-span-3 text-center py-20 text-red-400'>Failed to load restaurants.</div>";
     }
 }
 
@@ -210,12 +210,10 @@ function filterByCategory(category) {
     currentCategory = category;
 
     document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('bg-amber-600', 'text-white', 'shadow-sm');
-        btn.classList.add('bg-white/20');
+        btn.className = "category-btn bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-700 transition whitespace-nowrap";
     });
     if (event && event.currentTarget) {
-        event.currentTarget.classList.remove('bg-white/20');
-        event.currentTarget.classList.add('bg-amber-600', 'text-white', 'shadow-sm');
+        event.currentTarget.className = "category-btn bg-amber-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition whitespace-nowrap shadow-md shadow-amber-500/20";
     }
 
     applyFilters();
@@ -270,6 +268,11 @@ async function showCustomerStoreView(shopOwner) {
         if (!menuContainer) return;
         menuContainer.innerHTML = "";
 
+        if (!menu || menu.length === 0) {
+            menuContainer.innerHTML = "<div class='col-span-3 text-center py-20 text-slate-500'>No menu items available.</div>";
+            return;
+        }
+
         menu.forEach((item) => {
             const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
             if (isDeleted) return;
@@ -282,21 +285,21 @@ async function showCustomerStoreView(shopOwner) {
             const itemDesc = localStorage.getItem(`item_desc_${cleanOwner}_${item.id}`) || "";
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
 
-            const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">` : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
+            const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-40 object-cover rounded-2xl mb-4 border border-slate-700">` : `<div class="w-full h-40 bg-slate-900 rounded-2xl mb-4 flex items-center justify-center text-4xl border border-slate-700">🍔</div>`;
             const isPizza = itemName.toLowerCase().includes('pizza');
 
             const card = document.createElement('div');
-            card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
+            card.className = "bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-800 shadow-lg flex flex-col justify-between";
             card.innerHTML = `
                 <div>
                     ${imgElement}
-                    <h4 class="text-lg font-bold text-slate-900">${itemName}</h4>
-                    <p class="text-xs text-slate-500 mt-1 mb-2">${itemDesc}</p>
+                    <h4 class="text-lg font-black text-white">${itemName}</h4>
+                    <p class="text-xs text-slate-400 mt-1 mb-4 leading-relaxed">${itemDesc}</p>
                     
                     ${isPizza ? `
-                        <div class="mb-3">
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Select Size:</label>
-                            <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-800">
+                        <div class="mb-4">
+                            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Select Size:</label>
+                            <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white focus:outline-none focus:border-amber-500 transition">
                                 <option value="regular">Regular (Base Price)</option>
                                 <option value="medium">Medium</option>
                                 <option value="large">Large</option>
@@ -304,18 +307,18 @@ async function showCustomerStoreView(shopOwner) {
                         </div>
                     ` : ''}
 
-                    <div class="mb-3 flex items-center justify-between">
-                        <label class="text-xs font-semibold text-slate-700">Quantity:</label>
+                    <div class="mb-4 flex items-center justify-between">
+                        <label class="text-xs font-semibold text-slate-300">Quantity:</label>
                         <div class="flex items-center gap-2">
-                            <button onclick="adjustQty('${cleanOwner}', ${item.id}, -1, ${basePrice})" class="w-7 h-7 bg-slate-100 rounded-lg font-bold text-slate-700 hover:bg-slate-200">-</button>
-                            <span id="qty-${cleanOwner}-${item.id}" class="text-sm font-bold text-slate-800">1</span>
-                            <button onclick="adjustQty('${cleanOwner}', ${item.id}, 1, ${basePrice})" class="w-7 h-7 bg-slate-100 rounded-lg font-bold text-slate-700 hover:bg-slate-200">+</button>
+                            <button onclick="adjustQty('${cleanOwner}', ${item.id}, -1, ${basePrice})" class="w-8 h-8 bg-slate-900 border border-slate-700 rounded-xl font-bold text-slate-300 hover:bg-slate-700 transition">-</button>
+                            <span id="qty-${cleanOwner}-${item.id}" class="text-sm font-bold text-white">1</span>
+                            <button onclick="adjustQty('${cleanOwner}', ${item.id}, 1, ${basePrice})" class="w-8 h-8 bg-slate-900 border border-slate-700 rounded-xl font-bold text-slate-300 hover:bg-slate-700 transition">+</button>
                         </div>
                     </div>
 
-                    <p class="text-amber-700 font-bold text-sm">Price: <span id="price-display-${cleanOwner}-${item.id}">${basePrice.toFixed(2)}</span> USDC</p>
+                    <div class="mb-2 text-xs text-slate-400">Total Price: <span id="price-display-${cleanOwner}-${item.id}" class="text-amber-400 font-black text-base">${basePrice.toFixed(2)}</span> USDC</div>
                 </div>
-                <button onclick="buyCustomItem('${cleanOwner}', ${item.id})" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition text-sm">Pay with USDC</button>
+                <button onclick="buyCustomItem('${cleanOwner}', ${item.id})" class="mt-4 w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3 rounded-xl transition text-xs shadow-md shadow-amber-500/20">Pay with USDC</button>
             `;
             menuContainer.appendChild(card);
         });
@@ -388,32 +391,32 @@ async function buyCustomItem(shopOwner, itemIndex) {
         const txHash = receipt.hash;
 
         const receiptHTML = `
-            <div id="receipt-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div id="receipt-card-content" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in duration-200">
-                    <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
-                    <h3 class="text-2xl font-bold text-slate-900 mb-1">Payment Successful!</h3>
-                    <p class="text-xs text-slate-500 mb-6">Digital Receipt from ${shopName}</p>
+            <div id="receipt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div id="receipt-card-content" class="bg-slate-900 rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl border border-slate-800 text-center">
+                    <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-500/30">✅</div>
+                    <h3 class="text-2xl font-black text-white mb-1">Payment Successful!</h3>
+                    <p class="text-xs text-slate-400 mb-6">Digital Receipt from ${shopName}</p>
                     
-                    <div class="bg-slate-50 rounded-2xl p-4 text-left space-y-3 mb-6 border border-slate-200">
+                    <div class="bg-slate-800/60 rounded-2xl p-4 text-left space-y-3 mb-6 border border-slate-800">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">Item:</span>
-                            <span class="font-bold text-slate-800">${itemName}</span>
+                            <span class="text-slate-400">Item:</span>
+                            <span class="font-bold text-white">${itemName}</span>
                         </div>
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">Total Paid:</span>
-                            <span class="font-bold text-amber-700">${finalAmount.toFixed(2)} USDC</span>
+                            <span class="text-slate-400">Total Paid:</span>
+                            <span class="font-bold text-amber-400">${finalAmount.toFixed(2)} USDC</span>
                         </div>
                         <div class="flex justify-between text-xs items-center">
-                            <span class="text-slate-500">Tx Hash:</span>
-                            <a href="${ARC_CHAIN_CONFIG.blockExplorerUrls[0]}/tx/${txHash}" target="_blank" class="font-mono text-blue-600 underline truncate max-w-[150px]">${txHash}</a>
+                            <span class="text-slate-400">Tx Hash:</span>
+                            <a href="${ARC_CHAIN_CONFIG.blockExplorerUrls[0]}/tx/${txHash}" target="_blank" class="font-mono text-amber-400 underline truncate max-w-[150px]">${txHash}</a>
                         </div>
                     </div>
 
                     <div class="flex gap-2">
-                        <button onclick="downloadReceiptImage()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl transition text-xs">
+                        <button onclick="downloadReceiptImage()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition text-xs border border-slate-700">
                             Download Receipt
                         </button>
-                        <button onclick="document.getElementById('receipt-modal').remove(); window.location.reload();" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition text-xs">
+                        <button onclick="document.getElementById('receipt-modal').remove(); window.location.reload();" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3 rounded-xl transition text-xs shadow-md shadow-amber-500/20">
                             Back to Menu
                         </button>
                     </div>
@@ -442,7 +445,7 @@ async function loadOwnerDashboardMenu() {
         if (!qrContainer) {
             qrContainer = document.createElement('div');
             qrContainer.id = 'owner-qr-section';
-            qrContainer.className = "mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center";
+            qrContainer.className = "mt-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center";
             dashboardCard.appendChild(qrContainer);
         }
 
@@ -451,17 +454,17 @@ async function loadOwnerDashboardMenu() {
         const currentTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
 
         qrContainer.innerHTML = `
-            <h4 class='font-bold text-slate-800 text-base mb-2'>Shop QR Code & Link</h4>
-            <p class='text-xs text-slate-500 mb-3'>Customers can scan this to view your menu directly.</p>
+            <h4 class='font-bold text-white text-base mb-1'>Shop QR Code & Link</h4>
+            <p class='text-xs text-slate-400 mb-3'>Customers can scan this to view your menu directly.</p>
             <div class='flex justify-center mb-3'>
-                <img src="${qrApiUrl}" alt="Shop QR Code" class="w-36 h-36 rounded-xl border p-1 bg-white shadow-sm">
+                <img src="${qrApiUrl}" alt="Shop QR Code" class="w-36 h-36 rounded-2xl border border-slate-700 p-2 bg-white shadow-sm">
             </div>
-            <input type="text" readonly value="${storeUrl}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-600 text-center select-all mb-3" onclick="this.select()">
+            <input type="text" readonly value="${storeUrl}" class="w-full text-xs bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-slate-300 text-center select-all mb-3" onclick="this.select()">
             <div class="text-left mt-2">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Shop Subtitle / Tagline:</label>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Shop Subtitle / Tagline:</label>
                 <div class="flex gap-2">
-                    <input type="text" id="input-shop-tagline" value="${currentTagline}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-800">
-                    <button onclick="updateShopTagline('${cleanAddr}')" class="bg-amber-600 text-white text-xs px-3 py-2 rounded-lg font-semibold hover:bg-amber-700">Save</button>
+                    <input type="text" id="input-shop-tagline" value="${currentTagline}" class="w-full text-xs bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-white">
+                    <button onclick="updateShopTagline('${cleanAddr}')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-4 py-2.5 rounded-xl font-semibold transition">Save</button>
                 </div>
             </div>
         `;
@@ -471,13 +474,13 @@ async function loadOwnerDashboardMenu() {
         if (!dashMenuContainer) {
             dashMenuContainer = document.createElement('div');
             dashMenuContainer.id = 'owner-menu-list';
-            dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-100 pt-6";
+            dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-800 pt-6";
             dashboardCard.appendChild(dashMenuContainer);
         }
 
-        dashMenuContainer.innerHTML = "<h4 class='font-bold text-slate-800 text-base'>Manage Existing Menu Items</h4>";
+        dashMenuContainer.innerHTML = "<h4 class='font-bold text-white text-base'>Manage Existing Menu Items</h4>";
         if (!menu || menu.length === 0) {
-            dashMenuContainer.innerHTML += "<p class='text-sm text-slate-500'>No items added yet.</p>";
+            dashMenuContainer.innerHTML += "<p class='text-xs text-slate-500 mt-2'>No items added yet.</p>";
             return;
         }
 
@@ -491,17 +494,17 @@ async function loadOwnerDashboardMenu() {
             const currentDesc = localStorage.getItem(`item_desc_${cleanAddr}_${item.id}`) || "";
 
             const itemCard = document.createElement('div');
-            itemCard.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm";
+            itemCard.className = "flex items-center justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 text-xs";
             itemCard.innerHTML = `
                 <div>
-                    <p class="font-semibold text-slate-900">${currentName} <span class="text-xs ${isAvailable ? 'text-green-600 bg-green-50 px-2 py-0.5 rounded' : 'text-red-600 bg-red-50 px-2 py-0.5 rounded'}">${isAvailable ? 'Available' : 'Not Available'}</span></p>
-                    <p class="text-xs text-slate-500 mt-0.5">${currentDesc}</p>
-                    <p class="text-amber-700 text-xs mt-1 font-semibold">${currentPrice} USDC</p>
+                    <p class="font-bold text-white text-sm">${currentName} <span class="ml-2 px-2 py-0.5 rounded font-semibold ${isAvailable ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}">${isAvailable ? 'Available' : 'Unavailable'}</span></p>
+                    <p class="text-slate-400 mt-0.5">${currentDesc}</p>
+                    <p class="text-amber-400 font-semibold mt-1">${currentPrice} USDC</p>
                 </div>
-                <div class="flex gap-1.5 flex-wrap">
-                    <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${isAvailable ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
-                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}', '${currentDesc.replace(/'/g, "\\'")}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
-                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
+                <div class="flex gap-1.5 flex-wrap justify-end">
+                    <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${isAvailable ? 'bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
+                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}', '${currentDesc.replace(/'/g, "\\'")} ')" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-xl border border-slate-700 font-semibold transition">Edit</button>
+                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-xl border border-red-500/20 font-semibold transition">Delete</button>
                 </div>
             `;
             dashMenuContainer.appendChild(itemCard);
