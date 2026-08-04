@@ -184,7 +184,7 @@ async function loadShopsDirectory() {
                     }
 
                     shopsHtml += `
-                        <div onclick="openStorefront('${cleanAddr}')" data-category="${assignedCategory}" class="bg-slate-800/50 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-lg hover:border-amber-500/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group">
+                        <div onclick="openStorefront('${cleanAddr}')" data-category="${assignedCategory}" class="bg-slate-800/40 backdrop-blur-md p-6 rounded-3xl border border-slate-800/80 shadow-lg hover:bg-slate-800/70 hover:border-amber-500/60 hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group">
                             <div>
                                 <div class="mb-4">${logoElement}</div>
                                 <h3 class="shop-title text-xl font-black text-white group-hover:text-amber-400 transition">${shopName}</h3>
