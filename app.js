@@ -2,10 +2,7 @@ const ARC_CHAIN_CONFIG = {
     chainId: '0x4cef52',
     chainName: 'Arc Testnet',
     nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-    rpcUrls: [
-        'https://rpc.blockdaemon.testnet.arc.io',
-        'https://rpc.drpc.testnet.arc.io'
-    ],
+    rpcUrls: ['https://rpc.blockdaemon.testnet.arc.io', 'https://rpc.drpc.testnet.arc.io'],
     blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
@@ -96,7 +93,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     const ownerModalBtn = document.getElementById('btn-open-owner-modal');
     if (ownerModalBtn) ownerModalBtn.classList.remove('hidden');
-
+    
     routeView();
 });
 
@@ -107,9 +104,12 @@ async function connectWallet() {
         provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         userAddress = ethers.getAddress(await signer.getAddress());
+        
         document.getElementById('btn-connect').innerText = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
+        
         cafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, signer);
         usdcContract = new ethers.Contract(USDC_ADDRESS, ABI_ERC20, signer);
+        
         checkOwnerShopStatus();
     } catch (err) {
         alert("Wallet error: " + err.message);
@@ -120,13 +120,13 @@ async function switchNetwork() {
     try {
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: ARC_CHAIN_CONFIG.chainId }]
+            params: [{ chainId: ARC_CHAIN_CONFIG.chainId }],
         });
     } catch (err) {
         if (err.code === 4902) {
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
-                params: [ARC_CHAIN_CONFIG]
+                params: [ARC_CHAIN_CONFIG],
             });
         }
     }
@@ -152,12 +152,14 @@ async function loadShopsDirectory() {
     const grid = document.getElementById('shops-grid');
     if (!grid) return;
     grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>Loading restaurants from blockchain...</p>";
+    
     try {
         const allShopAddresses = await getAllShops();
         if (!allShopAddresses || allShopAddresses.length === 0) {
             grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>No restaurants found.</p>";
             return;
         }
+
         let shopsHtml = "";
         for (const ownerAddr of allShopAddresses) {
             try {
@@ -166,10 +168,11 @@ async function loadShopsDirectory() {
                 if (shop && shop.exists) {
                     const shopName = shop.shopName || shop[0];
                     if (!shopName) continue;
+
                     const logoUrl = localStorage.getItem(`shop_logo_${cleanAddr}`);
                     const customTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
                     const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">` : `<div class="text-3xl">☕</div>`;
-                    
+
                     shopsHtml += `
                         <div onclick="openStorefront('${cleanAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
                             <div>
@@ -209,6 +212,7 @@ function openStorefront(ownerAddr) {
 async function showCustomerStoreView(shopOwner) {
     document.getElementById('view-directory').classList.add('hidden');
     document.getElementById('view-customer-store').classList.remove('hidden');
+
     try {
         const cleanOwner = ethers.getAddress(shopOwner);
         const shop = await readOnlyCafePayContract.shops(cleanOwner);
@@ -224,10 +228,11 @@ async function showCustomerStoreView(shopOwner) {
         } else {
             logoContainer.innerHTML = `☕`;
         }
+
         const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
         const menuContainer = document.getElementById('customer-menu');
         menuContainer.innerHTML = "";
-        
+
         menu.forEach((item) => {
             const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
             if (isDeleted) return;
@@ -239,8 +244,8 @@ async function showCustomerStoreView(shopOwner) {
             const basePrice = parseFloat(localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6));
             const itemDesc = localStorage.getItem(`item_desc_${cleanOwner}_${item.id}`) || "";
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
+
             const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">` : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
-            
             const isPizza = itemName.toLowerCase().includes('pizza');
 
             const card = document.createElement('div');
@@ -252,14 +257,14 @@ async function showCustomerStoreView(shopOwner) {
                     <p class="text-xs text-slate-500 mt-1 mb-2">${itemDesc}</p>
                     
                     ${isPizza ? `
-                    <div class="mb-3">
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Select Size:</label>
-                        <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-800">
-                            <option value="regular">Regular (Base Price)</option>
-                            <option value="medium">Medium</option>
-                            <option value="large">Large</option>
-                        </select>
-                    </div>
+                        <div class="mb-3">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Select Size:</label>
+                            <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-800">
+                                <option value="regular">Regular (Base Price)</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
                     ` : ''}
 
                     <div class="mb-3 flex items-center justify-between">
@@ -320,25 +325,45 @@ function adjustQty(shopOwner, itemId, change, basePrice) {
     updateItemPrice(shopOwner, itemId, basePrice);
 }
 
+// Updated with Digital Receipt UI
 async function buyCustomItem(shopOwner, itemIndex) {
     if (!signer) return alert("Please connect wallet to buy.");
+    
     try {
         const basePriceStr = localStorage.getItem(`item_price_${shopOwner}_${itemIndex}`);
         const menu = await readOnlyCafePayContract.getShopMenu(shopOwner);
         const itemObj = menu.find(i => Number(i.id) === Number(itemIndex));
+        
         const basePrice = basePriceStr ? parseFloat(basePriceStr) : parseFloat(ethers.formatUnits(itemObj.price, 6));
-
         const finalAmount = calculateCurrentPrice(shopOwner, itemIndex, basePrice);
         const parsedAmount = ethers.parseUnits(finalAmount.toString(), 6);
-
+        
         const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
         if (allowance < parsedAmount) {
             const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, parsedAmount);
             await approveTx.wait();
         }
+        
         const buyTx = await cafePayContract.buyItem(shopOwner, itemIndex);
-        await buyTx.wait();
-        alert(`Payment of ${finalAmount.toFixed(2)} USDC successful!`);
+        const receipt = await buyTx.wait();
+        
+        const itemName = localStorage.getItem(`item_name_${shopOwner}_${itemIndex}`) || itemObj.name;
+        
+        const receiptHTML = `
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-lg max-w-md mx-auto my-6 text-left col-span-3">
+                <h3 class="text-xl font-bold text-slate-900 mb-1">🎉 Payment Successful!</h3>
+                <p class="text-xs text-slate-500 mb-4">Paid via USDC on Arc Testnet</p>
+                <div class="border-t border-b border-slate-100 py-3 space-y-2 text-sm text-slate-700">
+                    <div class="flex justify-between"><span>Item:</span> <span class="font-semibold">${itemName}</span></div>
+                    <div class="flex justify-between"><span>Amount Paid:</span> <span class="font-semibold text-amber-700">${finalAmount.toFixed(2)} USDC</span></div>
+                    <div class="flex justify-between"><span>Tx Hash:</span> <span class="font-mono text-xs text-slate-500">${receipt.hash.substring(0, 10)}...</span></div>
+                </div>
+                <button onclick="location.reload()" class="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-xl text-sm font-semibold transition">Back to Menu</button>
+            </div>
+        `;
+        
+        document.getElementById('customer-menu').innerHTML = receiptHTML;
+
     } catch (err) {
         alert("Transaction failed: " + (err.reason || err.message));
     }
@@ -348,7 +373,6 @@ async function loadOwnerDashboardMenu() {
     if (!userAddress) return;
     try {
         const cleanAddr = ethers.getAddress(userAddress);
-        
         const modalContent = document.querySelector('#owner-modal > div');
         if (modalContent) {
             modalContent.className = "bg-white rounded-3xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative";
@@ -362,6 +386,7 @@ async function loadOwnerDashboardMenu() {
             qrContainer.className = "mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center";
             dashboardCard.appendChild(qrContainer);
         }
+
         const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddr}`;
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(storeUrl)}`;
         const currentTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
@@ -391,8 +416,8 @@ async function loadOwnerDashboardMenu() {
             dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-100 pt-6";
             dashboardCard.appendChild(dashMenuContainer);
         }
+
         dashMenuContainer.innerHTML = "<h4 class='font-bold text-slate-800 text-base'>Manage Existing Menu Items</h4>";
-        
         if (!menu || menu.length === 0) {
             dashMenuContainer.innerHTML += "<p class='text-sm text-slate-500'>No items added yet.</p>";
             return;
@@ -461,7 +486,6 @@ function editItemPrompt(shopOwner, itemId, oldName, oldPrice, oldDesc) {
     if (newName.toLowerCase().includes('pizza')) {
         const medPrice = prompt("Enter Medium size price (USDC):", parseFloat(newPrice) + 2);
         const largePrice = prompt("Enter Large size price (USDC):", parseFloat(newPrice) + 5);
-        
         if (medPrice) localStorage.setItem(`item_price_medium_${shopOwner}_${itemId}`, medPrice.trim());
         if (largePrice) localStorage.setItem(`item_price_large_${shopOwner}_${itemId}`, largePrice.trim());
     }
@@ -513,14 +537,14 @@ async function addItem() {
     const name = document.getElementById('item-name').value.trim();
     const price = document.getElementById('item-price').value.trim();
     const description = document.getElementById('item-desc') ? document.getElementById('item-desc').value.trim() : "";
-    
+
     if (!name || !price) return alert("Please fill in item name and price.");
+
     try {
         const parsedPrice = ethers.parseUnits(price, 6);
         const tx = await cafePayContract.addItem(name, parsedPrice);
-        
         await tx.wait();
-        
+
         const menu = await cafePayContract.getShopMenu(userAddress);
         if (menu && menu.length > 0) {
             const newItem = menu[menu.length - 1];
@@ -531,12 +555,20 @@ async function addItem() {
             if (imgUrl) {
                 localStorage.setItem(`item_img_${userAddress}_${newItem.id}`, imgUrl);
             }
+
+            if (name.toLowerCase().includes('pizza')) {
+                const medPrice = document.getElementById('item-price-med') ? document.getElementById('item-price-med').value.trim() : "";
+                const largePrice = document.getElementById('item-price-large') ? document.getElementById('item-price-large').value.trim() : "";
+                if (medPrice) localStorage.setItem(`item_price_medium_${userAddress}_${newItem.id}`, medPrice);
+                if (largePrice) localStorage.setItem(`item_price_large_${userAddress}_${newItem.id}`, largePrice);
+            }
         }
 
         alert("Item added successfully!");
         document.getElementById('item-name').value = "";
         document.getElementById('item-price').value = "";
         if (document.getElementById('item-desc')) document.getElementById('item-desc').value = "";
+        if (document.getElementById('item-img-input')) document.getElementById('item-img-input').value = "";
         
         loadOwnerDashboardMenu();
     } catch (err) {
@@ -547,28 +579,25 @@ async function addItem() {
 async function updateShopLogo() {
     if (!userAddress) return alert("Please connect wallet first.");
     const logoUrl = await uploadImageFile('shop-logo-input');
-    if (!logoUrl) return alert("Please select an image.");
+    if (!logoUrl) return alert("Please select a valid image file.");
     localStorage.setItem(`shop_logo_${userAddress}`, logoUrl);
     alert("Shop logo updated successfully!");
-    checkOwnerShopStatus();
-    loadShopsDirectory();
+    loadOwnerDashboardMenu();
 }
 
 async function checkOwnerShopStatus() {
     if (!userAddress) return;
     try {
-        const cleanAddress = ethers.getAddress(userAddress);
-        const shop = await readOnlyCafePayContract.shops(cleanAddress);
-        if (shop.exists) {
-            document.getElementById('card-register').classList.add('hidden');
-            document.getElementById('card-dashboard').classList.remove('hidden');
-            const shopName = shop.shopName || shop[0];
-            document.getElementById('dash-title').innerText = `Dashboard: ${shopName}`;
-            const logoUrl = localStorage.getItem(`shop_logo_${cleanAddress}`);
-            if (logoUrl) {
-                document.getElementById('dash-shop-logo').innerHTML = `<img src="${logoUrl}" class="w-full h-full object-cover">`;
-            }
-            loadOwnerDashboardMenu();
+        const shop = await readOnlyCafePayContract.shops(userAddress);
+        const regSection = document.getElementById('section-register-shop');
+        const dashSection = document.getElementById('section-owner-dashboard');
+        
+        if (shop && shop.exists) {
+            if (regSection) regSection.classList.add('hidden');
+            if (dashSection) dashSection.classList.remove('hidden');
+        } else {
+            if (regSection) regSection.classList.remove('hidden');
+            if (dashSection) dashSection.classList.add('hidden');
         }
     } catch (err) {
         console.error("Error checking shop status:", err);
