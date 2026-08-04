@@ -19,11 +19,9 @@
       </a>
       
       <div class="flex items-center gap-3">
-        <!-- Add Shop Button (Opens Owner Modal) -->
         <button id="btn-open-owner-modal" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-4 py-2 rounded-full text-sm transition">
           + Add Your Shop
         </button>
-        <!-- Wallet Connect -->
         <button id="btn-connect" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-5 py-2 rounded-full shadow transition text-sm">
           Connect Wallet
         </button>
@@ -31,41 +29,38 @@
     </div>
   </header>
 
-  <!-- Status Notification Bar -->
+  <!-- Status Bar -->
   <div class="max-w-4xl mx-auto px-4 mt-4">
-    <div id="status-bar" class="hidden p-4 rounded-xl text-center font-medium shadow-sm transition-all duration-300 bg-amber-100 border border-amber-300 text-amber-900"></div>
+    <div id="status-bar" class="hidden p-4 rounded-xl text-center font-medium shadow-sm transition-all bg-amber-100 border border-amber-300 text-amber-900"></div>
   </div>
 
   <main class="max-w-6xl mx-auto px-4 py-8">
 
-    <!-- SEARCH & CUSTOMER SHOP DIRECTORY (Default View) -->
+    <!-- Directory View -->
     <section id="view-directory" class="space-y-6">
-      
-      <!-- Hero & Search Header -->
       <div class="text-center max-w-2xl mx-auto space-y-4">
         <h2 class="text-4xl font-extrabold text-slate-900">Discover & Pay at Local Cafés</h2>
         <p class="text-slate-600">Explore registered restaurants, view menus, and pay instantly with USDC on Arc Network.</p>
         
-        <!-- Search Box -->
         <div class="relative max-w-xl mx-auto">
           <input type="text" id="search-input" placeholder="Search restaurant or café name..." class="w-full px-5 py-3.5 pl-12 rounded-2xl border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
           <span class="absolute left-4 top-3.5 text-slate-400 text-xl">🔍</span>
         </div>
       </div>
 
-      <!-- Shop Cards Grid -->
-      <div id="shops-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-6">
-        <!-- Restaurant Cards will load here dynamically -->
-      </div>
+      <div id="shops-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-6"></div>
     </section>
 
-    <!-- CUSTOMER STOREFRONT MENU VIEW -->
+    <!-- Customer Store View -->
     <section id="view-customer-store" class="hidden space-y-6">
       <button id="btn-back-to-shops" class="text-amber-700 font-semibold flex items-center gap-1 hover:underline">
         ← Back to all restaurants
       </button>
 
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5">
+        <div id="cust-shop-logo" class="w-20 h-20 rounded-2xl bg-amber-100 flex items-center justify-center text-4xl overflow-hidden border border-amber-200 shrink-0">
+          ☕
+        </div>
         <div>
           <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full uppercase">Restaurant</span>
           <h2 id="cust-shop-name" class="text-3xl font-black text-slate-900 mt-1">Shop Name</h2>
@@ -74,14 +69,12 @@
       </div>
 
       <h3 class="text-2xl font-bold text-slate-900">Menu Items</h3>
-      <div id="customer-menu" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Menu Items will render here -->
-      </div>
+      <div id="customer-menu" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </section>
 
   </main>
 
-  <!-- SHOP OWNER MODAL / SIDEBAR PANEL -->
+  <!-- Shop Owner Modal -->
   <div id="owner-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex justify-end">
     <div class="bg-white w-full max-w-md h-full shadow-2xl p-6 overflow-y-auto space-y-6">
       
@@ -90,25 +83,35 @@
         <button id="btn-close-owner-modal" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
       </div>
 
-      <!-- State 1: Register Shop -->
+      <!-- Register Form -->
       <div id="card-register" class="space-y-4">
-        <p class="text-sm text-slate-600">Register your shop address on Arc Testnet to start adding menu items.</p>
+        <p class="text-sm text-slate-600">Register your shop address on Arc Testnet.</p>
+        
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Shop Name</label>
           <input type="text" id="reg-shop-name" placeholder="e.g. Crypto Brew Café" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500">
         </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Logo Image URL (Optional)</label>
+          <input type="url" id="reg-shop-logo" placeholder="https://example.com/logo.png" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500">
+          <p class="text-[11px] text-slate-400 mt-1">Direct link to your logo image or leave empty for default coffee icon.</p>
+        </div>
+
         <button id="btn-register" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl shadow transition">
           Register Shop
         </button>
       </div>
 
-      <!-- State 2: Dashboard (If Shop Already Registered) -->
+      <!-- Dashboard -->
       <div id="card-dashboard" class="hidden space-y-6">
-        <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
-          <h4 id="dash-title" class="font-bold text-amber-900">Your Shop</h4>
+        <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-center gap-3">
+          <div id="dash-shop-logo" class="w-12 h-12 rounded-xl bg-amber-200 flex items-center justify-center text-2xl overflow-hidden shrink-0">☕</div>
+          <div>
+            <h4 id="dash-title" class="font-bold text-amber-900">Your Shop</h4>
+          </div>
         </div>
 
-        <!-- Add Item Box -->
         <div class="space-y-3 border-t pt-4">
           <h4 class="font-bold text-slate-900">Add Menu Item</h4>
           <div>
@@ -124,7 +127,6 @@
           </button>
         </div>
 
-        <!-- QR Code Box -->
         <div class="border-t pt-4 text-center space-y-2">
           <h4 class="font-bold text-slate-900 text-sm">Direct Store Link & QR</h4>
           <div id="qr-code" class="p-2 bg-white rounded-lg inline-block border"></div>
