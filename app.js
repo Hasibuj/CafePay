@@ -28,7 +28,7 @@ let cafePayContract, usdcContract;
 const readOnlyProvider = new ethers.JsonRpcProvider(ARC_CHAIN_CONFIG.rpcUrls[0]);
 const readOnlyCafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, readOnlyProvider);
 
-// Default initial shops (can be empty or contain seed addresses)
+// Default initial shops
 const INITIAL_SHOPS = [
   "0x8c7a4b87da5777b5c9ce8d68292e4d383ecd7b90"
 ];
@@ -49,7 +49,7 @@ function saveRegisteredShop(address) {
   }
 }
 
-// Reliable image converter using Base64 (No external API required)
+// Image uploader with automatic compression to prevent LocalStorage quota errors
 function uploadImageFile(fileInputId) {
   return new Promise((resolve) => {
     const input = document.getElementById(fileInputId);
@@ -62,7 +62,39 @@ function uploadImageFile(fileInputId) {
     const reader = new FileReader();
 
     reader.onload = function (e) {
-      resolve(e.target.result);
+      const img = new Image();
+      img.src = e.target.result;
+      
+      img.onload = function () {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 300;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressedDataUrl);
+      };
+
+      img.onerror = function () {
+        resolve(null);
+      };
     };
 
     reader.onerror = function () {
@@ -372,7 +404,6 @@ async function registerShop() {
     const tx = await cafePayContract.registerShop(name);
     await tx.wait();
 
-    // Automatically save newly registered shop address to directory
     saveRegisteredShop(userAddress);
 
     if (uploadedLogoUrl) {
