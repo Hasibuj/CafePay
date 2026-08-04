@@ -31,11 +31,18 @@ const ABI_ERC20 = [
 let provider, signer, userAddress;
 let cafePayContract, usdcContract;
 
+// Read-only Provider (for fetching data without wallet connection)
+const readOnlyProvider = new ethers.JsonRpcProvider(ARC_CHAIN_CONFIG.rpcUrls[0]);
+const readOnlyCafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, readOnlyProvider);
+
 // --- Initialize App ---
 window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-connect').addEventListener('click', connectWallet);
   document.getElementById('btn-register').addEventListener('click', registerShop);
   document.getElementById('btn-add-item').addEventListener('click', addItem);
+
+  // Load view immediately on page load
+  routeView();
 });
 
 async function connectWallet() {
@@ -46,7 +53,7 @@ async function connectWallet() {
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
     
-    // Checksum Error এড়ানোর জন্য Address ফরম্যাট করা হলো
+    // Format address to prevent Checksum Error
     const rawAddress = await signer.getAddress();
     userAddress = ethers.getAddress(rawAddress);
 
@@ -92,7 +99,9 @@ async function routeView() {
   } else {
     // Render Shop Owner View
     document.getElementById('view-owner').classList.remove('hidden');
-    loadOwnerDashboard();
+    if (userAddress) {
+      loadOwnerDashboard();
+    }
   }
 }
 
@@ -126,6 +135,7 @@ async function loadOwnerDashboard() {
 }
 
 async function registerShop() {
+  if (!signer) return alert("Please connect your wallet first.");
   const name = document.getElementById('reg-shop-name').value;
   if (!name) return alert("Please enter a shop name");
 
@@ -141,6 +151,7 @@ async function registerShop() {
 }
 
 async function addItem() {
+  if (!signer) return alert("Please connect your wallet first.");
   const name = document.getElementById('item-name').value;
   const priceStr = document.getElementById('item-price').value;
   if (!name || !priceStr) return alert("Fill in item details");
@@ -161,9 +172,10 @@ async function addItem() {
 // --- Customer Functions ---
 async function loadCustomerStorefront(shopOwner) {
   try {
-    // shopOwner এড্রেস সঠিক Checksum-এ রূপান্তর
     const cleanOwner = ethers.getAddress(shopOwner);
-    const shop = await cafePayContract.shops(cleanOwner);
+    
+    // Fetch menu using Read-only Provider
+    const shop = await readOnlyCafePayContract.shops(cleanOwner);
 
     if (!shop.exists) {
       document.getElementById('cust-shop-name').innerText = "Shop Not Found";
@@ -173,7 +185,7 @@ async function loadCustomerStorefront(shopOwner) {
     document.getElementById('cust-shop-name').innerText = shop.shopName;
     document.getElementById('cust-shop-owner').innerText = `Owner: ${shop.ownerAddress}`;
 
-    const menu = await cafePayContract.getShopMenu(cleanOwner);
+    const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
     const menuContainer = document.getElementById('customer-menu');
     menuContainer.innerHTML = "";
 
@@ -199,7 +211,11 @@ async function loadCustomerStorefront(shopOwner) {
 
 // 2-Step Payment Protocol: USDC Approve -> Execute Buy
 window.buyItem = async function(shopOwner, itemId, price) {
-  if (!signer) return alert("Please connect wallet first.");
+  if (!signer) {
+    alert("Please connect your wallet first to complete payment.");
+    await connectWallet();
+    if (!signer) return;
+  }
 
   try {
     const cleanOwner = ethers.getAddress(shopOwner);
