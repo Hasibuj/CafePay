@@ -9,7 +9,6 @@ const ARC_CHAIN_CONFIG = {
 const CONTRACT_ADDRESS = "0x3519D9c9F3ba4416D2A428AC3F80DEa63946B672";
 const USDC_ADDRESS     = "0x3600000000000000000000000000000000000000";
 
-// Free ImgBB API Key (ইচ্ছামতো নিজস্ব key বসাতে পারেন)
 const IMGBB_API_KEY = "3b4f62fa28f4d5efbe38bbcdbaeb08b4"; 
 
 const ABI_CAFEPAY = [
@@ -35,7 +34,6 @@ const ALL_SHOPS = [
   "0x8c7a4b87da5777b5c9ce8d68292e4d383ecd7b90"
 ];
 
-// হেলপার ফাংশন: ফাইলকে সরাসরি অনলাইনে আপলোড করে URL এনে দেবে
 async function uploadImageFile(fileInputId) {
   const input = document.getElementById(fileInputId);
   if (!input || !input.files[0]) return null;
@@ -54,11 +52,9 @@ async function uploadImageFile(fileInputId) {
     if (data.success) {
       return data.data.url;
     } else {
-      console.error("Image upload failed:", data);
       return null;
     }
   } catch (err) {
-    console.error("Upload error:", err);
     return null;
   }
 }
@@ -67,6 +63,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-connect').addEventListener('click', connectWallet);
   document.getElementById('btn-register').addEventListener('click', registerShop);
   document.getElementById('btn-add-item').addEventListener('click', addItem);
+  document.getElementById('btn-update-logo').addEventListener('click', updateShopLogo);
   
   document.getElementById('btn-open-owner-modal').addEventListener('click', openOwnerModal);
   document.getElementById('btn-close-owner-modal').addEventListener('click', closeOwnerModal);
@@ -193,9 +190,14 @@ async function showCustomerStoreView(shopOwner) {
     menuContainer.innerHTML = "";
 
     menu.forEach((item) => {
-      if (!item.active) return;
-      const price = ethers.formatUnits(item.price, 6);
-      
+      // Check if item is deleted or inactive
+      const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
+      if (!item.active || isDeleted) return;
+
+      // Check override name and price from edit
+      const currentName = localStorage.getItem(`item_name_${cleanOwner}_${item.id}`) || item.name;
+      const currentPrice = localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6);
+
       const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
       const imgElement = foodImgUrl 
         ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">`
@@ -206,10 +208,10 @@ async function showCustomerStoreView(shopOwner) {
       card.innerHTML = `
         <div>
           ${imgElement}
-          <h4 class="text-lg font-bold text-slate-900">${item.name}</h4>
-          <p class="text-amber-700 font-bold mt-1">${price} USDC</p>
+          <h4 class="text-lg font-bold text-slate-900">${currentName}</h4>
+          <p class="text-amber-700 font-bold mt-1">${currentPrice} USDC</p>
         </div>
-        <button onclick="buyItem('${cleanOwner}', ${item.id}, ${item.price})" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
+        <button onclick="buyItem('${cleanOwner}', ${item.id}, ${ethers.parseUnits(currentPrice, 6)})" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
       `;
       menuContainer.appendChild(card);
     });
@@ -249,9 +251,93 @@ async function checkOwnerShopStatus() {
 
       document.getElementById('qr-code').innerHTML = "";
       new QRCode(document.getElementById('qr-code'), { text: storeUrl, width: 100, height: 100 });
+
+      // Render Dashboard Manage Items List
+      loadOwnerManageItemsList(cleanAddress);
     }
   } catch (e) {
     console.error(e);
+  }
+}
+
+async function loadOwnerManageItemsList(ownerAddr) {
+  const container = document.getElementById('owner-menu-manage-list');
+  container.innerHTML = "<p class='text-xs text-slate-400'>Loading menu items...</p>";
+
+  try {
+    const menu = await readOnlyCafePayContract.getShopMenu(ownerAddr);
+    container.innerHTML = "";
+
+    menu.forEach((item) => {
+      const isDeleted = localStorage.getItem(`item_deleted_${ownerAddr}_${item.id}`) === 'true';
+      if (isDeleted) return;
+
+      const name = localStorage.getItem(`item_name_${ownerAddr}_${item.id}`) || item.name;
+      const price = localStorage.getItem(`item_price_${ownerAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
+
+      const div = document.createElement('div');
+      div.className = "p-3 bg-slate-50 border rounded-lg flex items-center justify-between text-xs";
+      div.innerHTML = `
+        <div>
+          <p class="font-bold text-slate-800">${name}</p>
+          <p class="text-slate-500">${price} USDC</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="editMenuItem(${item.id})" class="px-2 py-1 bg-amber-500 text-white font-semibold rounded hover:bg-amber-600">Edit</button>
+          <button onclick="deleteMenuItem(${item.id})" class="px-2 py-1 bg-red-500 text-white font-semibold rounded hover:bg-red-600">Delete</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+window.editMenuItem = function(itemId) {
+  const currentName = localStorage.getItem(`item_name_${userAddress}_${itemId}`) || "";
+  const currentPrice = localStorage.getItem(`item_price_${userAddress}_${itemId}`) || "";
+
+  const newName = prompt("Enter new item name:", currentName);
+  if (newName === null) return;
+
+  const newPrice = prompt("Enter new item price (USDC):", currentPrice);
+  if (newPrice === null) return;
+
+  if (newName.trim()) localStorage.setItem(`item_name_${userAddress}_${itemId}`, newName.trim());
+  if (newPrice.trim()) localStorage.setItem(`item_price_${userAddress}_${itemId}`, newPrice.trim());
+
+  showStatus("Item details updated successfully!", "success");
+  checkOwnerShopStatus();
+};
+
+window.deleteMenuItem = function(itemId) {
+  if (confirm("Are you sure you want to delete this menu item?")) {
+    localStorage.setItem(`item_deleted_${userAddress}_${itemId}`, 'true');
+    showStatus("Item deleted successfully!", "success");
+    checkOwnerShopStatus();
+  }
+};
+
+async function updateShopLogo() {
+  if (!userAddress) return alert("Please connect wallet first.");
+  
+  const logoInput = document.getElementById('update-shop-logo-file');
+  if (!logoInput.files[0]) return alert("Please select an image file first.");
+
+  try {
+    const uploadedLogoUrl = await uploadImageFile('update-shop-logo-file');
+
+    if (uploadedLogoUrl) {
+      localStorage.setItem(`shop_logo_${userAddress}`, uploadedLogoUrl);
+      document.getElementById('dash-shop-logo').innerHTML = `<img src="${uploadedLogoUrl}" class="w-full h-full object-cover">`;
+      showStatus("Shop logo updated successfully!", "success");
+      loadShopsDirectory();
+    } else {
+      showStatus("Failed to upload image.", "info");
+    }
+  } catch (err) {
+    showStatus("Error: " + err.message, "info");
   }
 }
 
@@ -261,7 +347,6 @@ async function registerShop() {
   if (!name) return alert("Enter shop name.");
 
   try {
-    // ১. ফাইল নির্বাচন করা থাকলে সেটি সার্ভারে আপলোড করা হবে
     const uploadedLogoUrl = await uploadImageFile('reg-shop-logo-file');
 
     showStatus("Registering shop on blockchain...", "info");
@@ -288,7 +373,6 @@ async function addItem() {
   if (!name || !priceStr) return alert("Fill in item details.");
 
   try {
-    // ১. কাস্টম ফাইল থাকলে আপলোড করা হবে
     const uploadedFoodImgUrl = await uploadImageFile('item-image-file');
 
     showStatus("Adding item to blockchain...", "info");
@@ -303,6 +387,7 @@ async function addItem() {
     }
 
     showStatus("Item added successfully!", "success");
+    checkOwnerShopStatus();
   } catch (err) {
     showStatus(err.message, "info");
   }
