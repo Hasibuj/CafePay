@@ -30,89 +30,95 @@
         <section id="view-directory" class="space-y-6">
             <div class="bg-gradient-to-r from-amber-500 to-amber-700 rounded-3xl p-8 text-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
-                    <h2 class="text-3xl font-extrabold tracking-tight">Discover & Pay at Local Cafés</h2>
-                    <p class="text-amber-100 mt-2 text-sm max-w-xl">Explore registered restaurants, view menus, and pay seamlessly with USDC on Arc Network.</p>
+                    <h2 class="text-3xl font-extrabold tracking-tight mb-2">Decentralized Dining & Coffee</h2>
+                    <p class="text-amber-100 text-sm max-w-xl">Discover local restaurants and pay instantly using USDC on Arc Testnet with crypto-native transparency.</p>
                 </div>
-                <div class="w-full md:w-80">
-                    <input type="text" id="search-input" placeholder="Search restaurants..." class="w-full px-4 py-3 rounded-2xl text-slate-900 bg-white placeholder-slate-400 text-sm outline-none shadow-inner">
+                <div class="w-full md:w-auto">
+                    <input type="text" id="search-input" placeholder="Search restaurants..." class="w-full md:w-80 px-4 py-3 rounded-2xl text-slate-900 text-sm bg-white/95 backdrop-blur placeholder-slate-400 focus:outline-none shadow-inner">
                 </div>
             </div>
 
             <div>
-                <h3 class="text-xl font-bold text-slate-800 mb-4">Available Restaurants</h3>
+                <h3 class="text-xl font-bold text-slate-900 mb-4">Available Restaurants</h3>
                 <div id="shops-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <p class="text-slate-500 col-span-3 text-center">Loading restaurants from blockchain...</p>
                 </div>
             </div>
         </section>
 
-        <!-- View 2: Customer Storefront View -->
+        <!-- View 2: Customer Storefront -->
         <section id="view-customer-store" class="hidden space-y-6">
-            <button id="btn-back-to-shops" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm transition">
-                ← Back to Restaurants
-            </button>
-
-            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-6">
-                <div id="cust-shop-logo" class="w-20 h-20 bg-amber-50 rounded-2xl flex items-center justify-center text-4xl overflow-hidden border border-amber-100 flex-shrink-0">☕</div>
-                <div>
-                    <h2 id="cust-shop-name" class="text-2xl font-extrabold text-slate-900">Shop Name</h2>
-                    <p id="cust-shop-owner" class="text-xs font-mono text-slate-500 mt-1">Owner: 0x...</p>
+            <button id="btn-back-to-shops" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-700 bg-amber-50 px-4 py-2 rounded-xl border border-amber-200 hover:bg-amber-100 transition">← Back to All Restaurants</button>
+            
+            <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-6">
+                <div id="cust-shop-logo" class="w-24 h-24 bg-amber-100 rounded-2xl flex items-center justify-center text-4xl overflow-hidden shadow-inner flex-shrink-0">☕</div>
+                <div class="text-center md:text-left">
+                    <h2 id="cust-shop-name" class="text-3xl font-extrabold text-slate-900 mb-1">Loading Shop...</h2>
+                    <p id="cust-shop-owner" class="text-sm text-slate-500">Fresh food & delicious coffee served daily!</p>
                 </div>
             </div>
 
             <div>
-                <h3 class="text-xl font-bold text-slate-800 mb-4">Menu Items</h3>
+                <h3 class="text-xl font-bold text-slate-900 mb-4">Menu Items</h3>
                 <div id="customer-menu" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <p class="text-slate-500 col-span-3 text-center">Loading menu...</p>
+                    <!-- Dynamic Menu Items -->
                 </div>
             </div>
         </section>
 
     </main>
 
-    <!-- Shop Owner Modal / Panel -->
-    <div id="owner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 class="text-xl font-bold text-slate-900">Shop Owner Dashboard</h3>
-                <button id="btn-close-owner-modal" class="text-slate-400 hover:text-slate-600 font-bold text-xl px-2">×</button>
+    <!-- Shop Owner Modal -->
+    <div id="owner-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div id="card-dashboard" class="bg-white rounded-3xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
+                <h3 class="text-2xl font-bold text-slate-900">Shop Owner Panel</h3>
+                <button id="btn-close-owner-modal" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
             </div>
 
-            <!-- Registration Card -->
-            <div id="card-register" class="space-y-4">
-                <h4 class="font-bold text-slate-800 text-base">Register Your Shop</h4>
-                <div class="space-y-3">
-                    <input type="text" id="reg-shop-name" placeholder="Restaurant Name" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50">
-                    <button id="btn-register" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Register on Blockchain</button>
+            <!-- Section 1: Register Shop (Shown if not registered) -->
+            <div id="section-register-shop" class="space-y-4">
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 text-sm">
+                    <p class="font-semibold mb-1">Welcome, Restaurant Owner!</p>
+                    <p class="text-xs text-amber-800">You haven't registered your shop on the blockchain yet. Register now to start creating your digital menu and accepting crypto payments.</p>
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Restaurant Name:</label>
+                    <input type="text" id="reg-shop-name" placeholder="e.g. Cyber Cafe & Bistro" class="w-full text-sm bg-slate-50 border border-slate-200 p-3 rounded-xl text-slate-800 focus:outline-none focus:border-amber-500">
+                </div>
+                <button id="btn-register" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition text-sm shadow-sm">Register Restaurant</button>
             </div>
 
-            <!-- Dashboard Card (Visible when registered) -->
-            <div id="card-dashboard" class="hidden space-y-6">
-                <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                    <div id="dash-shop-logo" class="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center text-2xl overflow-hidden border border-amber-200">☕</div>
+            <!-- Section 2: Owner Dashboard (Shown if registered) -->
+            <div id="section-owner-dashboard" class="hidden space-y-6">
+                <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     <div>
-                        <h4 id="dash-title" class="font-bold text-slate-900 text-base">Dashboard</h4>
-                        <label class="inline-block mt-1 text-xs text-amber-700 font-semibold cursor-pointer hover:underline">
-                            Upload Logo
-                            <input type="file" id="shop-logo-input" accept="image/*" class="hidden">
-                        </label>
-                        <button id="btn-update-logo" class="ml-2 text-xs bg-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold">Save Logo</button>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Store Management</span>
+                        <h4 id="owner-shop-title" class="text-lg font-bold text-slate-900">My Shop</h4>
                     </div>
+                    <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">Active on Arc</span>
                 </div>
 
-                <!-- Add Menu Item Section -->
-                <div class="space-y-3 border-t border-slate-100 pt-4">
-                    <h4 class="font-bold text-slate-800 text-base">Add New Item</h4>
-                    <input type="text" id="item-name" placeholder="Item Name (e.g., Espresso)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50">
-                    <input type="number" id="item-price" placeholder="Price in USDC" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50">
-                    
-                    <!-- Item Description Box -->
-                    <textarea id="item-desc" placeholder="Item Description (e.g., Rich and creamy hot coffee)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50 resize-none h-20"></textarea>
-                    
-                    <input type="file" id="item-img-input" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
-                    
-                    <button id="btn-add-item" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Add Item to Menu</button>
+                <!-- Update Logo Form -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <h4 class="font-bold text-slate-800 text-sm">Update Shop Logo</h4>
+                    <input type="file" id="shop-logo-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                    <button id="btn-update-logo" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Save Logo</button>
+                </div>
+
+                <!-- Add Menu Item Form -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <h4 class="font-bold text-slate-800 text-sm">Add New Menu Item</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" id="item-name" placeholder="Item Name (e.g. Pepperoni Pizza)" class="text-xs bg-white border border-slate-200 p-3 rounded-xl text-slate-800">
+                        <input type="number" id="item-price" placeholder="Price in USDC" step="0.01" class="text-xs bg-white border border-slate-200 p-3 rounded-xl text-slate-800">
+                    </div>
+                    <input type="text" id="item-desc" placeholder="Short description (e.g. Loaded with extra cheese)" class="w-full text-xs bg-white border border-slate-200 p-3 rounded-xl text-slate-800">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Item Image:</label>
+                        <input type="file" id="item-img-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                    </div>
+                    <button id="btn-add-item" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl transition text-xs">Add Item to Menu</button>
                 </div>
             </div>
         </div>
@@ -120,7 +126,7 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
-        <p>Powered by Arc Network & USDC. Built for CafePay.</p>
+        <p>Powered by CafePay on Arc Testnet • Built for decentralized commerce</p>
     </footer>
 
     <script src="app.js"></script>
