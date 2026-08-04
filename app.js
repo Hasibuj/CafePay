@@ -34,7 +34,7 @@ async function getAllShops() {
         const shops = await readOnlyCafePayContract.getAllShops();
         return shops || [];
     } catch (err) {
-        console.error("Error fetching shops from blockchain:", err);
+        console.error("Error fetching shops:", err);
         return [];
     }
 }
@@ -71,25 +71,24 @@ function uploadImageFile(fileInputId) {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                resolve(compressedDataUrl);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
             };
-            img.onerror = function () { resolve(null); };
+            img.onerror = () => resolve(null);
         };
-        reader.onerror = function () { resolve(null); };
+        reader.onerror = () => resolve(null);
         reader.readAsDataURL(file);
     });
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-    document.getElementById('btn-connect').addEventListener('click', connectWallet);
-    document.getElementById('btn-register').addEventListener('click', registerShop);
-    document.getElementById('btn-add-item').addEventListener('click', addItem);
-    document.getElementById('btn-update-logo').addEventListener('click', updateShopLogo);
-    document.getElementById('btn-open-owner-modal').addEventListener('click', openOwnerModal);
-    document.getElementById('btn-close-owner-modal').addEventListener('click', closeOwnerModal);
-    document.getElementById('btn-back-to-shops').addEventListener('click', showDirectoryView);
-    document.getElementById('search-input').addEventListener('input', filterShops);
+    document.getElementById('btn-connect')?.addEventListener('click', connectWallet);
+    document.getElementById('btn-register')?.addEventListener('click', registerShop);
+    document.getElementById('btn-add-item')?.addEventListener('click', addItem);
+    document.getElementById('btn-update-logo')?.addEventListener('click', updateShopLogo);
+    document.getElementById('btn-open-owner-modal')?.addEventListener('click', openOwnerModal);
+    document.getElementById('btn-close-owner-modal')?.addEventListener('click', closeOwnerModal);
+    document.getElementById('btn-back-to-shops')?.addEventListener('click', showDirectoryView);
+    document.getElementById('search-input')?.addEventListener('input', filterShops);
 
     const ownerModalBtn = document.getElementById('btn-open-owner-modal');
     if (ownerModalBtn) ownerModalBtn.classList.remove('hidden');
@@ -103,9 +102,15 @@ async function connectWallet() {
         provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         userAddress = ethers.getAddress(await signer.getAddress());
-        document.getElementById('btn-connect').innerText = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
+        
+        const connectBtn = document.getElementById('btn-connect');
+        if (connectBtn) {
+            connectBtn.innerText = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
+        }
+        
         cafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, signer);
         usdcContract = new ethers.Contract(USDC_ADDRESS, ABI_ERC20, signer);
+        
         await checkOwnerShopStatus();
     } catch (err) {
         alert("Wallet error: " + err.message);
@@ -139,8 +144,8 @@ async function routeView() {
 }
 
 async function showDirectoryView() {
-    document.getElementById('view-customer-store').classList.add('hidden');
-    document.getElementById('view-directory').classList.remove('hidden');
+    document.getElementById('view-customer-store')?.classList.add('hidden');
+    document.getElementById('view-directory')?.classList.remove('hidden');
     loadShopsDirectory();
 }
 
@@ -181,18 +186,18 @@ async function loadShopsDirectory() {
                     `;
                 }
             } catch (innerErr) {
-                console.error("Error parsing shop:", ownerAddr, innerErr);
+                console.error("Error parsing shop:", innerErr);
             }
         }
         grid.innerHTML = shopsHtml || "<p class='text-slate-500 col-span-3 text-center'>No active restaurants found.</p>";
     } catch (err) {
-        console.error("Error loading shops directory:", err);
+        console.error("Error loading directory:", err);
         grid.innerHTML = "<p class='text-red-500 col-span-3 text-center'>Failed to load restaurants.</p>";
     }
 }
 
 function filterShops() {
-    const query = document.getElementById('search-input').value.toLowerCase();
+    const query = document.getElementById('search-input')?.value.toLowerCase() || "";
     const cards = document.querySelectorAll('#shops-grid > div');
     cards.forEach(card => {
         const title = card.querySelector('.shop-title')?.innerText.toLowerCase() || "";
@@ -206,27 +211,28 @@ function openStorefront(ownerAddr) {
 }
 
 async function showCustomerStoreView(shopOwner) {
-    document.getElementById('view-directory').classList.add('hidden');
-    document.getElementById('view-customer-store').classList.remove('hidden');
+    document.getElementById('view-directory')?.classList.add('hidden');
+    document.getElementById('view-customer-store')?.classList.remove('hidden');
 
     try {
         const cleanOwner = ethers.getAddress(shopOwner);
         const shop = await readOnlyCafePayContract.shops(cleanOwner);
-        document.getElementById('cust-shop-name').innerText = shop.shopName || shop[0] || "Shop Not Found";
+        const shopNameEl = document.getElementById('cust-shop-name');
+        if (shopNameEl) shopNameEl.innerText = shop.shopName || shop[0] || "Shop Not Found";
 
         const customTagline = localStorage.getItem(`shop_tagline_${cleanOwner}`) || "Fresh food & delicious coffee served daily!";
-        document.getElementById('cust-shop-owner').innerText = customTagline;
+        const shopOwnerEl = document.getElementById('cust-shop-owner');
+        if (shopOwnerEl) shopOwnerEl.innerText = customTagline;
 
         const logoUrl = localStorage.getItem(`shop_logo_${cleanOwner}`);
         const logoContainer = document.getElementById('cust-shop-logo');
-        if (logoUrl) {
-            logoContainer.innerHTML = `<img src="${logoUrl}" class="w-full h-full object-cover">`;
-        } else {
-            logoContainer.innerHTML = `☕`;
+        if (logoContainer) {
+            logoContainer.innerHTML = logoUrl ? `<img src="${logoUrl}" class="w-full h-full object-cover">` : `☕`;
         }
 
         const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
         const menuContainer = document.getElementById('customer-menu');
+        if (!menuContainer) return;
         menuContainer.innerHTML = "";
 
         menu.forEach((item) => {
@@ -344,10 +350,11 @@ async function buyCustomItem(shopOwner, itemIndex) {
         const shop = await readOnlyCafePayContract.shops(shopOwner);
         const shopName = shop.shopName || shop[0] || "CafePay Shop";
         const itemName = localStorage.getItem(`item_name_${shopOwner}_${itemIndex}`) || itemObj.name;
+        const txHash = receipt.hash;
 
         const receiptHTML = `
             <div id="receipt-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in duration-200">
+                <div id="receipt-card-content" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in duration-200">
                     <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
                     <h3 class="text-2xl font-bold text-slate-900 mb-1">Payment Successful!</h3>
                     <p class="text-xs text-slate-500 mb-6">Digital Receipt from ${shopName}</p>
@@ -363,13 +370,18 @@ async function buyCustomItem(shopOwner, itemIndex) {
                         </div>
                         <div class="flex justify-between text-xs items-center">
                             <span class="text-slate-500">Tx Hash:</span>
-                            <a href="${ARC_CHAIN_CONFIG.blockExplorerUrls[0]}/tx/${receipt.hash}" target="_blank" class="font-mono text-blue-600 underline truncate max-w-[150px]">${receipt.hash}</a>
+                            <a href="${ARC_CHAIN_CONFIG.blockExplorerUrls[0]}/tx/${txHash}" target="_blank" class="font-mono text-blue-600 underline truncate max-w-[150px]">${txHash}</a>
                         </div>
                     </div>
 
-                    <button onclick="document.getElementById('receipt-modal').remove(); window.location.reload();" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition text-sm">
-                        Back to Menu
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="downloadReceiptImage()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl transition text-xs">
+                            Download Receipt
+                        </button>
+                        <button onclick="document.getElementById('receipt-modal').remove(); window.location.reload();" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition text-xs">
+                            Back to Menu
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -380,95 +392,87 @@ async function buyCustomItem(shopOwner, itemIndex) {
     }
 }
 
+function downloadReceiptImage() {
+    window.print();
+}
+
 async function loadOwnerDashboardMenu() {
     if (!userAddress) return;
     try {
         const cleanAddr = ethers.getAddress(userAddress);
-        const modalContent = document.querySelector('#owner-modal > div');
-        if (modalContent) {
-            modalContent.className = "bg-white rounded-3xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative";
-        }
+        const dashboardCard = document.getElementById('card-dashboard');
+        if (!dashboardCard) return;
 
         let qrContainer = document.getElementById('owner-qr-section');
         if (!qrContainer) {
-            const dashboardCard = document.getElementById('card-dashboard');
-            if (dashboardCard) {
-                qrContainer = document.createElement('div');
-                qrContainer.id = 'owner-qr-section';
-                qrContainer.className = "mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center";
-                dashboardCard.appendChild(qrContainer);
-            }
+            qrContainer = document.createElement('div');
+            qrContainer.id = 'owner-qr-section';
+            qrContainer.className = "mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center";
+            dashboardCard.appendChild(qrContainer);
         }
 
         const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddr}`;
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(storeUrl)}`;
         const currentTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
 
-        if (qrContainer) {
-            qrContainer.innerHTML = `
-                <h4 class='font-bold text-slate-800 text-base mb-2'>Shop QR Code & Link</h4>
-                <p class='text-xs text-slate-500 mb-3'>Customers can scan this to view your menu directly.</p>
-                <div class='flex justify-center mb-3'>
-                    <img src="${qrApiUrl}" alt="Shop QR Code" class="w-36 h-36 rounded-xl border p-1 bg-white shadow-sm">
+        qrContainer.innerHTML = `
+            <h4 class='font-bold text-slate-800 text-base mb-2'>Shop QR Code & Link</h4>
+            <p class='text-xs text-slate-500 mb-3'>Customers can scan this to view your menu directly.</p>
+            <div class='flex justify-center mb-3'>
+                <img src="${qrApiUrl}" alt="Shop QR Code" class="w-36 h-36 rounded-xl border p-1 bg-white shadow-sm">
+            </div>
+            <input type="text" readonly value="${storeUrl}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-600 text-center select-all mb-3" onclick="this.select()">
+            <div class="text-left mt-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Shop Subtitle / Tagline:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="input-shop-tagline" value="${currentTagline}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-800">
+                    <button onclick="updateShopTagline('${cleanAddr}')" class="bg-amber-600 text-white text-xs px-3 py-2 rounded-lg font-semibold hover:bg-amber-700">Save</button>
                 </div>
-                <input type="text" readonly value="${storeUrl}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-600 text-center select-all mb-3" onclick="this.select()">
-                <div class="text-left mt-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Shop Subtitle / Tagline:</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="input-shop-tagline" value="${currentTagline}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-800">
-                        <button onclick="updateShopTagline('${cleanAddr}')" class="bg-amber-600 text-white text-xs px-3 py-2 rounded-lg font-semibold hover:bg-amber-700">Save</button>
-                    </div>
-                </div>
-            `;
-        }
+            </div>
+        `;
 
         const menu = await readOnlyCafePayContract.getShopMenu(cleanAddr);
         let dashMenuContainer = document.getElementById('owner-menu-list');
         if (!dashMenuContainer) {
-            const dashboardCard = document.getElementById('card-dashboard');
-            if (dashboardCard) {
-                dashMenuContainer = document.createElement('div');
-                dashMenuContainer.id = 'owner-menu-list';
-                dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-100 pt-6";
-                dashboardCard.appendChild(dashMenuContainer);
-            }
+            dashMenuContainer = document.createElement('div');
+            dashMenuContainer.id = 'owner-menu-list';
+            dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-100 pt-6";
+            dashboardCard.appendChild(dashMenuContainer);
         }
 
-        if (dashMenuContainer) {
-            dashMenuContainer.innerHTML = "<h4 class='font-bold text-slate-800 text-base'>Manage Existing Menu Items</h4>";
-            if (!menu || menu.length === 0) {
-                dashMenuContainer.innerHTML += "<p class='text-sm text-slate-500'>No items added yet.</p>";
-                return;
-            }
-
-            menu.forEach(item => {
-                const isDeleted = localStorage.getItem(`item_deleted_${cleanAddr}_${item.id}`) === 'true';
-                if (isDeleted) return;
-
-                const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${item.id}`) !== 'false';
-                const currentName = localStorage.getItem(`item_name_${cleanAddr}_${item.id}`) || item.name;
-                const currentPrice = localStorage.getItem(`item_price_${cleanAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
-                const currentDesc = localStorage.getItem(`item_desc_${cleanAddr}_${item.id}`) || "";
-
-                const itemCard = document.createElement('div');
-                itemCard.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm";
-                itemCard.innerHTML = `
-                    <div>
-                        <p class="font-semibold text-slate-900">${currentName} <span class="text-xs ${isAvailable ? 'text-green-600 bg-green-50 px-2 py-0.5 rounded' : 'text-red-600 bg-red-50 px-2 py-0.5 rounded'}">${isAvailable ? 'Available' : 'Not Available'}</span></p>
-                        <p class="text-xs text-slate-500 mt-0.5">${currentDesc}</p>
-                        <p class="text-amber-700 text-xs mt-1 font-semibold">${currentPrice} USDC</p>
-                    </div>
-                    <div class="flex gap-1.5 flex-wrap">
-                        <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${isAvailable ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
-                        <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}', '${currentDesc.replace(/'/g, "\\'")}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
-                        <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
-                    </div>
-                `;
-                dashMenuContainer.appendChild(itemCard);
-            });
+        dashMenuContainer.innerHTML = "<h4 class='font-bold text-slate-800 text-base'>Manage Existing Menu Items</h4>";
+        if (!menu || menu.length === 0) {
+            dashMenuContainer.innerHTML += "<p class='text-sm text-slate-500'>No items added yet.</p>";
+            return;
         }
+
+        menu.forEach(item => {
+            const isDeleted = localStorage.getItem(`item_deleted_${cleanAddr}_${item.id}`) === 'true';
+            if (isDeleted) return;
+
+            const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${item.id}`) !== 'false';
+            const currentName = localStorage.getItem(`item_name_${cleanAddr}_${item.id}`) || item.name;
+            const currentPrice = localStorage.getItem(`item_price_${cleanAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
+            const currentDesc = localStorage.getItem(`item_desc_${cleanAddr}_${item.id}`) || "";
+
+            const itemCard = document.createElement('div');
+            itemCard.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm";
+            itemCard.innerHTML = `
+                <div>
+                    <p class="font-semibold text-slate-900">${currentName} <span class="text-xs ${isAvailable ? 'text-green-600 bg-green-50 px-2 py-0.5 rounded' : 'text-red-600 bg-red-50 px-2 py-0.5 rounded'}">${isAvailable ? 'Available' : 'Not Available'}</span></p>
+                    <p class="text-xs text-slate-500 mt-0.5">${currentDesc}</p>
+                    <p class="text-amber-700 text-xs mt-1 font-semibold">${currentPrice} USDC</p>
+                </div>
+                <div class="flex gap-1.5 flex-wrap">
+                    <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${isAvailable ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
+                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}', '${currentDesc.replace(/'/g, "\\'")}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
+                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
+                </div>
+            `;
+            dashMenuContainer.appendChild(itemCard);
+        });
     } catch (err) {
-        console.error("Error loading owner dashboard menu:", err);
+        console.error("Error loading owner menu:", err);
     }
 }
 
@@ -525,19 +529,22 @@ function deleteItem(shopOwner, itemId) {
 }
 
 async function openOwnerModal() {
-    document.getElementById('owner-modal').classList.remove('hidden');
+    const modal = document.getElementById('owner-modal');
+    if (modal) modal.classList.remove('hidden');
     if (userAddress) {
         await checkOwnerShopStatus();
+    } else {
+        alert("Please connect your wallet first.");
     }
 }
 
 function closeOwnerModal() {
-    document.getElementById('owner-modal').classList.add('hidden');
+    document.getElementById('owner-modal')?.classList.add('hidden');
 }
 
 async function registerShop() {
     if (!cafePayContract) return alert("Please connect wallet first.");
-    const name = document.getElementById('reg-shop-name').value.trim();
+    const name = document.getElementById('reg-shop-name')?.value.trim();
     if (!name) return alert("Please enter a shop name.");
     try {
         const tx = await cafePayContract.registerShop(name);
@@ -552,9 +559,9 @@ async function registerShop() {
 
 async function addItem() {
     if (!cafePayContract) return alert("Please connect wallet first.");
-    const name = document.getElementById('item-name').value.trim();
-    const price = document.getElementById('item-price').value.trim();
-    const description = document.getElementById('item-desc') ? document.getElementById('item-desc').value.trim() : "";
+    const name = document.getElementById('item-name')?.value.trim();
+    const price = document.getElementById('item-price')?.value.trim();
+    const description = document.getElementById('item-desc')?.value.trim() || "";
 
     if (!name || !price) return alert("Please fill in item name and price.");
 
@@ -623,6 +630,6 @@ async function checkOwnerShopStatus() {
             if (dashSection) dashSection.classList.add('hidden');
         }
     } catch (err) {
-        console.error("Error checking owner shop status:", err);
+        console.error("Error checking shop status:", err);
     }
 }
