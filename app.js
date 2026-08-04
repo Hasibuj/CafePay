@@ -7,8 +7,8 @@ const ARC_CHAIN_CONFIG = {
     blockExplorerUrls: ['https://explorer.arc.network']
 };
 
-const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000"; // Deploy & paste MultiShopCoffee address
-const USDC_ADDRESS = "0x0000000000000000000000000000000000000000";     // Arc USDC token address
+const CONTRACT_ADDRESS = "0x3519D9c9F3ba4416D2A428AC3F80DEa63946B672"; // Deploy & paste MultiShopCoffee address
+const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";     // Arc USDC token address
 
 const ABI_CAFEPAY = [
     "function registerShop(string memory _shopName) external",
