@@ -3,37 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CaféPay — Web3 Coffee Marketplace</title>
-  
-  <!-- Tailwind CSS -->
+  <title>CaféPay — Find & Pay at Top Cafés</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Ethers.js v6 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-  
-  <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  
-  <style>
-    .glass-card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(229, 231, 235, 0.8);
-    }
-  </style>
 </head>
-<body class="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 min-h-screen text-slate-800 font-sans">
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
 
   <!-- Navigation Bar -->
-  <header class="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-amber-200/50 shadow-sm">
+  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center gap-2">
+      <a href="/" class="flex items-center gap-2 cursor-pointer">
         <span class="text-3xl">☕</span>
-        <h1 class="text-2xl font-black tracking-tight text-amber-900">Café<span class="text-amber-600">Pay</span></h1>
+        <h1 class="text-2xl font-black text-amber-900">Café<span class="text-amber-600">Pay</span></h1>
+      </a>
+      
+      <div class="flex items-center gap-3">
+        <!-- Add Shop Button (Opens Owner Modal) -->
+        <button id="btn-open-owner-modal" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-4 py-2 rounded-full text-sm transition">
+          + Add Your Shop
+        </button>
+        <!-- Wallet Connect -->
+        <button id="btn-connect" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-5 py-2 rounded-full shadow transition text-sm">
+          Connect Wallet
+        </button>
       </div>
-      <button id="btn-connect" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition duration-200">
-        Connect Wallet
-      </button>
     </div>
   </header>
 
@@ -42,85 +36,105 @@
     <div id="status-bar" class="hidden p-4 rounded-xl text-center font-medium shadow-sm transition-all duration-300 bg-amber-100 border border-amber-300 text-amber-900"></div>
   </div>
 
-  <!-- Main Container -->
-  <main class="max-w-5xl mx-auto px-4 py-8">
+  <main class="max-w-6xl mx-auto px-4 py-8">
 
-    <!-- SHOP OWNER VIEW -->
-    <section id="view-owner" class="hidden space-y-8">
+    <!-- SEARCH & CUSTOMER SHOP DIRECTORY (Default View) -->
+    <section id="view-directory" class="space-y-6">
       
-      <!-- Hero Banner for Owner -->
-      <div class="text-center max-w-2xl mx-auto space-y-3">
-        <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight">Decentralized Coffee Shop Management</h2>
-        <p class="text-slate-600 text-lg">Register your shop on Arc Network and start accepting instant USDC payments with zero hassle.</p>
-      </div>
-
-      <!-- Registration Card -->
-      <div id="card-register" class="max-w-md mx-auto glass-card p-8 rounded-2xl shadow-xl space-y-5">
-        <h3 class="text-xl font-bold text-slate-900">Register Your Store</h3>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1">Shop Name</label>
-          <input type="text" id="reg-shop-name" placeholder="e.g. Crypto Brew Café" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white/80">
-        </div>
-        <button id="btn-register" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl shadow-md transition duration-200">
-          Create Shop
-        </button>
-      </div>
-
-      <!-- Owner Dashboard -->
-      <div id="card-dashboard" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Hero & Search Header -->
+      <div class="text-center max-w-2xl mx-auto space-y-4">
+        <h2 class="text-4xl font-extrabold text-slate-900">Discover & Pay at Local Cafés</h2>
+        <p class="text-slate-600">Explore registered restaurants, view menus, and pay instantly with USDC on Arc Network.</p>
         
-        <!-- Add Menu Item Box -->
-        <div class="glass-card p-6 rounded-2xl shadow-lg space-y-4">
-          <h3 id="dash-title" class="text-xl font-bold text-amber-900">Dashboard</h3>
-          <p class="text-sm text-slate-500">Add new items to your digital menu.</p>
-          
-          <div class="space-y-3">
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Item Name</label>
-              <input type="text" id="item-name" placeholder="Espresso, Latte..." class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-amber-500 bg-white">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Price (USDC)</label>
-              <input type="number" step="0.01" id="item-price" placeholder="2.50" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-amber-500 bg-white">
-            </div>
-            <button id="btn-add-item" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg shadow transition">
-              + Add to Menu
-            </button>
-          </div>
+        <!-- Search Box -->
+        <div class="relative max-w-xl mx-auto">
+          <input type="text" id="search-input" placeholder="Search restaurant or café name..." class="w-full px-5 py-3.5 pl-12 rounded-2xl border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+          <span class="absolute left-4 top-3.5 text-slate-400 text-xl">🔍</span>
         </div>
+      </div>
 
-        <!-- Store QR Code Box -->
-        <div class="glass-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center space-y-4">
-          <h4 class="text-lg font-bold text-slate-900">Your QR Storefront Link</h4>
-          <p class="text-xs text-slate-500 max-w-xs">Scan or share this link with customers to display your menu and accept payments.</p>
-          
-          <div id="qr-code" class="p-3 bg-white rounded-xl shadow border border-slate-200"></div>
-          
-          <a id="store-link" target="_blank" class="text-xs font-medium text-amber-700 hover:underline break-all max-w-xs"></a>
-        </div>
-
+      <!-- Shop Cards Grid -->
+      <div id="shops-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-6">
+        <!-- Restaurant Cards will load here dynamically -->
       </div>
     </section>
 
-    <!-- CUSTOMER STOREFRONT VIEW -->
-    <section id="view-customer" class="hidden space-y-8">
-      
-      <!-- Store Header -->
-      <div class="text-center space-y-2">
-        <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full uppercase tracking-wider">Storefront</span>
-        <h2 id="cust-shop-name" class="text-4xl font-black text-slate-900">Loading Shop...</h2>
-        <p id="cust-shop-owner" class="text-xs font-mono text-slate-500"></p>
+    <!-- CUSTOMER STOREFRONT MENU VIEW -->
+    <section id="view-customer-store" class="hidden space-y-6">
+      <button id="btn-back-to-shops" class="text-amber-700 font-semibold flex items-center gap-1 hover:underline">
+        ← Back to all restaurants
+      </button>
+
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full uppercase">Restaurant</span>
+          <h2 id="cust-shop-name" class="text-3xl font-black text-slate-900 mt-1">Shop Name</h2>
+          <p id="cust-shop-owner" class="text-xs font-mono text-slate-500 mt-1"></p>
+        </div>
       </div>
 
-      <!-- Customer Menu Grid -->
+      <h3 class="text-2xl font-bold text-slate-900">Menu Items</h3>
       <div id="customer-menu" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Menu Items will render here dynamically -->
+        <!-- Menu Items will render here -->
       </div>
     </section>
 
   </main>
 
-  <!-- External Script -->
+  <!-- SHOP OWNER MODAL / SIDEBAR PANEL -->
+  <div id="owner-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex justify-end">
+    <div class="bg-white w-full max-w-md h-full shadow-2xl p-6 overflow-y-auto space-y-6">
+      
+      <div class="flex justify-between items-center border-b pb-4">
+        <h3 class="text-xl font-bold text-slate-900">Shop Owner Panel</h3>
+        <button id="btn-close-owner-modal" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- State 1: Register Shop -->
+      <div id="card-register" class="space-y-4">
+        <p class="text-sm text-slate-600">Register your shop address on Arc Testnet to start adding menu items.</p>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Shop Name</label>
+          <input type="text" id="reg-shop-name" placeholder="e.g. Crypto Brew Café" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500">
+        </div>
+        <button id="btn-register" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl shadow transition">
+          Register Shop
+        </button>
+      </div>
+
+      <!-- State 2: Dashboard (If Shop Already Registered) -->
+      <div id="card-dashboard" class="hidden space-y-6">
+        <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
+          <h4 id="dash-title" class="font-bold text-amber-900">Your Shop</h4>
+        </div>
+
+        <!-- Add Item Box -->
+        <div class="space-y-3 border-t pt-4">
+          <h4 class="font-bold text-slate-900">Add Menu Item</h4>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Item Name</label>
+            <input type="text" id="item-name" placeholder="Espresso, Cappuccino..." class="w-full px-4 py-2 rounded-lg border border-slate-300">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Price (USDC)</label>
+            <input type="number" step="0.01" id="item-price" placeholder="2.50" class="w-full px-4 py-2 rounded-lg border border-slate-300">
+          </div>
+          <button id="btn-add-item" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg shadow">
+            + Add to Menu
+          </button>
+        </div>
+
+        <!-- QR Code Box -->
+        <div class="border-t pt-4 text-center space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">Direct Store Link & QR</h4>
+          <div id="qr-code" class="p-2 bg-white rounded-lg inline-block border"></div>
+          <a id="store-link" target="_blank" class="block text-xs text-amber-700 break-all hover:underline"></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
