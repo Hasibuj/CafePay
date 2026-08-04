@@ -3,149 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CaféPay — Find & Pay at Top Cafés</title>
-    <!-- Tailwind CSS CDN -->
+    <title>CafePay - Decentralized Restaurant Directory</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Ethers.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <!-- QRCode Generator -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col justify-between">
 
-    <!-- Header / Navbar -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="showDirectoryView()">
-                <div class="w-10 h-10 bg-amber-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">☕</div>
-                <div>
-                    <h1 class="text-lg font-bold text-slate-900 tracking-tight">Café Pay</h1>
-                    <p class="text-xs text-slate-500">Decentralized Dining & Payments</p>
-                </div>
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="showDirectoryView()">
+                <div class="bg-amber-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xl shadow-sm">☕</div>
+                <h1 class="font-extrabold text-xl tracking-tight text-slate-900">CafePay</h1>
             </div>
             <div class="flex items-center gap-3">
-                <button id="btn-open-owner-modal" class="hidden bg-amber-100 text-amber-900 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-amber-200 transition">Shop Owner Panel</button>
-                <button id="btn-connect" class="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-800 transition shadow-sm">Connect Wallet</button>
+                <button id="btn-open-owner-modal" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2 rounded-xl transition">Shop Owner Panel</button>
+                <button id="btn-connect" class="bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition">Connect Wallet</button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Container -->
-    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
 
-        <!-- VIEW 1: Directory & Customer Search -->
-        <div id="view-directory">
-            <!-- Hero Banner -->
-            <div class="text-center max-w-2xl mx-auto mb-10">
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-3">Discover & Pay at Local Cafés</h2>
-                <p class="text-slate-600 text-sm sm:text-base">Explore registered restaurants, view menus, and pay instantly with USDC on Arc Network.</p>
-                <div class="mt-6 flex items-center bg-white border border-slate-200 rounded-2xl p-2 shadow-sm max-w-md mx-auto">
-                    <span class="pl-3 text-slate-400">🔍</span>
-                    <input type="text" id="search-input" placeholder="Search restaurant or café name..." class="w-full px-3 py-1.5 outline-none text-sm text-slate-900 bg-transparent">
+        <!-- View 1: Restaurant Directory & Search -->
+        <section id="view-directory" class="space-y-6">
+            <div class="bg-gradient-to-r from-amber-500 to-amber-700 rounded-3xl p-8 text-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight">Discover & Pay at Local Cafés</h2>
+                    <p class="text-amber-100 mt-2 text-sm max-w-xl">Explore registered restaurants, view menus, and pay seamlessly with USDC on Arc Network.</p>
+                </div>
+                <div class="w-full md:w-80">
+                    <input type="text" id="search-input" placeholder="Search restaurants..." class="w-full px-4 py-3 rounded-2xl text-slate-900 bg-white placeholder-slate-400 text-sm outline-none shadow-inner">
                 </div>
             </div>
 
-            <!-- Restaurants Grid -->
-            <div id="shops-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Dynamic Shops loaded here -->
-                <p class="text-slate-500 col-span-3 text-center py-10">Loading restaurants from blockchain...</p>
+            <div>
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Available Restaurants</h3>
+                <div id="shops-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <p class="text-slate-500 col-span-3 text-center">Loading restaurants from blockchain...</p>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <!-- VIEW 2: Customer Storefront -->
-        <div id="view-customer-store" class="hidden">
-            <button id="btn-back-to-shops" class="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-amber-700 bg-amber-50 px-4 py-2 rounded-xl border border-amber-200 hover:bg-amber-100 transition">← Back to Directory</button>
-            
-            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm mb-8 flex flex-col sm:flex-row items-center gap-6">
-                <div id="cust-shop-logo" class="w-20 h-20 sm:w-24 sm:h-24 bg-amber-100 rounded-2xl flex items-center justify-center text-4xl shrink-0 overflow-hidden border border-slate-200">☕</div>
-                <div class="text-center sm:text-left">
-                    <h2 id="cust-shop-name" class="text-2xl sm:text-3xl font-extrabold text-slate-900">Loading Shop...</h2>
+        <!-- View 2: Customer Storefront View -->
+        <section id="view-customer-store" class="hidden space-y-6">
+            <button id="btn-back-to-shops" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm transition">
+                ← Back to Restaurants
+            </button>
+
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-6">
+                <div id="cust-shop-logo" class="w-20 h-20 bg-amber-50 rounded-2xl flex items-center justify-center text-4xl overflow-hidden border border-amber-100 flex-shrink-0">☕</div>
+                <div>
+                    <h2 id="cust-shop-name" class="text-2xl font-extrabold text-slate-900">Shop Name</h2>
                     <p id="cust-shop-owner" class="text-xs font-mono text-slate-500 mt-1">Owner: 0x...</p>
                 </div>
             </div>
 
-            <h3 class="text-xl font-bold text-slate-900 mb-4">Menu Items</h3>
-            <div id="customer-menu" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Menu items dynamically rendered here -->
+            <div>
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Menu Items</h3>
+                <div id="customer-menu" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <p class="text-slate-500 col-span-3 text-center">Loading menu...</p>
+                </div>
             </div>
-        </div>
+        </section>
 
     </main>
 
-    <!-- SHOP OWNER DASHBOARD MODAL -->
+    <!-- Shop Owner Modal / Panel -->
     <div id="owner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white w-full max-w-xl rounded-3xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-            
-            <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                <h3 id="owner-shop-title" class="font-bold text-slate-900 text-lg">Shop Owner Panel</h3>
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h3 class="text-xl font-bold text-slate-900">Shop Owner Dashboard</h3>
                 <button id="btn-close-owner-modal" class="text-slate-400 hover:text-slate-600 font-bold text-xl px-2">×</button>
             </div>
 
-            <!-- Modal Scrollable Body -->
-            <div class="p-6 overflow-y-auto space-y-6 flex-grow">
+            <!-- Registration Card -->
+            <div id="card-register" class="space-y-4">
+                <h4 class="font-bold text-slate-800 text-base">Register Your Shop</h4>
+                <div class="space-y-3">
+                    <input type="text" id="reg-shop-name" placeholder="Restaurant Name" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50">
+                    <button id="btn-register" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Register on Blockchain</button>
+                </div>
+            </div>
 
-                <!-- 1. Registration Section (Visible if not registered) -->
-                <div id="section-register-shop" class="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-                    <h4 class="font-bold text-amber-900 mb-2">Register Your Shop</h4>
-                    <p class="text-xs text-amber-700 mb-4">Set up your blockchain-enabled store profile instantly.</p>
-                    <input type="text" id="reg-shop-name" placeholder="Enter Shop Name (e.g., Block Cafe)" class="w-full px-4 py-2.5 rounded-xl border border-amber-300 bg-white text-sm mb-3 outline-none focus:ring-2 focus:ring-amber-500">
-                    <button id="btn-register" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl text-sm transition">Register on Blockchain</button>
+            <!-- Dashboard Card (Visible when registered) -->
+            <div id="card-dashboard" class="hidden space-y-6">
+                <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <div id="dash-shop-logo" class="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center text-2xl overflow-hidden border border-amber-200">☕</div>
+                    <div>
+                        <h4 id="dash-title" class="font-bold text-slate-900 text-base">Dashboard</h4>
+                        <label class="inline-block mt-1 text-xs text-amber-700 font-semibold cursor-pointer hover:underline">
+                            Upload Logo
+                            <input type="file" id="shop-logo-input" accept="image/*" class="hidden">
+                        </label>
+                        <button id="btn-update-logo" class="ml-2 text-xs bg-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold">Save Logo</button>
+                    </div>
                 </div>
 
-                <!-- 2. Owner Controls Section (Visible if registered) -->
-                <div id="section-owner-content" class="hidden space-y-6">
-
-                    <!-- Logo Update Block -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                        <h4 class="font-bold text-sm text-slate-900 mb-2">Update Shop Logo</h4>
-                        <input type="file" id="shop-logo-file" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 mb-3">
-                        <button id="btn-update-logo" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 rounded-xl text-xs transition">Upload & Save Logo</button>
-                    </div>
-
-                    <!-- Store Link & QR Code Block -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center text-center">
-                        <h4 class="font-bold text-sm text-slate-900 mb-1">Your Store QR Code & Link</h4>
-                        <p class="text-xs text-slate-500 mb-3">Customers can scan this to order directly from your store.</p>
-                        <div id="owner-qr-code" class="bg-white p-2 rounded-xl border border-slate-200 mb-3"></div>
-                        <input type="text" id="owner-store-link" readonly class="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-600 font-mono select-all">
-                    </div>
-
-                    <!-- Manage Menu Items Section (Includes Add Item & Active Item Management) -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
-                        <h4 class="font-bold text-sm text-slate-900">Manage Menu Items</h4>
-                        
-                        <!-- Add Item Form -->
-                        <div class="space-y-3 bg-white p-3 rounded-xl border border-slate-200">
-                            <p class="text-xs font-semibold text-slate-700">Add New Item</p>
-                            <input type="text" id="item-name" placeholder="Item Name (e.g., Espresso)" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none">
-                            <input type="number" id="item-price" placeholder="Price in USDC (e.g., 5)" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none">
-                            <input type="file" id="item-image-file" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
-                            <button id="btn-add-item" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl text-xs transition">Add Item to Menu</button>
-                        </div>
-
-                        <!-- Existing Items List for Quick Management (Delete/Toggle Availability) -->
-                        <div class="space-y-2">
-                            <p class="text-xs font-semibold text-slate-700">Existing Menu Items</p>
-                            <div id="owner-manage-menu-container" class="space-y-2 max-h-48 overflow-y-auto">
-                                <!-- Dynamic existing items list populated by app.js -->
-                            </div>
-                        </div>
-
-                    </div>
-
+                <!-- Add Menu Item Section -->
+                <div class="space-y-3 border-t border-slate-100 pt-4">
+                    <h4 class="font-bold text-slate-800 text-base">Add New Item</h4>
+                    <input type="text" id="item-name" placeholder="Item Name (e.g., Espresso)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50">
+                    <input type="number" id="item-price" placeholder="Price in USDC" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50">
+                    
+                    <!-- Item Description Box -->
+                    <textarea id="item-desc" placeholder="Item Description (e.g., Rich and creamy hot coffee)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-slate-50 resize-none h-20"></textarea>
+                    
+                    <input type="file" id="item-img-input" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                    
+                    <button id="btn-add-item" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Add Item to Menu</button>
                 </div>
-
             </div>
         </div>
     </div>
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
-        <p>© 2026 Café Pay. Built securely on Arc Network.</p>
+        <p>Powered by Arc Network & USDC. Built for CafePay.</p>
     </footer>
 
-    <!-- Main JavaScript File -->
     <script src="app.js"></script>
 </body>
 </html>
