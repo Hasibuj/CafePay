@@ -256,8 +256,8 @@ async function showCustomerStoreView(shopOwner) {
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Select Size:</label>
                         <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-800">
                             <option value="regular">Regular (Base Price)</option>
-                            <option value="medium">Medium (+2 USDC)</option>
-                            <option value="large">Large (+5 USDC)</option>
+                            <option value="medium">Medium</option>
+                            <option value="large">Large</option>
                         </select>
                     </div>
                     ` : ''}
@@ -284,16 +284,23 @@ async function showCustomerStoreView(shopOwner) {
 
 function calculateCurrentPrice(shopOwner, itemId, basePrice) {
     const sizeSelect = document.getElementById(`size-${shopOwner}-${itemId}`);
-    let sizeMultiplier = 0;
+    let finalUnitPrice = basePrice;
+
     if (sizeSelect) {
-        if (sizeSelect.value === 'medium') sizeMultiplier = 2;
-        if (sizeSelect.value === 'large') sizeMultiplier = 5;
+        const selectedSize = sizeSelect.value;
+        if (selectedSize === 'medium') {
+            const customMed = localStorage.getItem(`item_price_medium_${shopOwner}_${itemId}`);
+            finalUnitPrice = customMed ? parseFloat(customMed) : basePrice + 2;
+        } else if (selectedSize === 'large') {
+            const customLarge = localStorage.getItem(`item_price_large_${shopOwner}_${itemId}`);
+            finalUnitPrice = customLarge ? parseFloat(customLarge) : basePrice + 5;
+        }
     }
 
     const qtySpan = document.getElementById(`qty-${shopOwner}-${itemId}`);
     const qty = qtySpan ? parseInt(qtySpan.innerText) : 1;
 
-    return (basePrice + sizeMultiplier) * qty;
+    return finalUnitPrice * qty;
 }
 
 function updateItemPrice(shopOwner, itemId, basePrice) {
@@ -442,13 +449,21 @@ function toggleAvailability(shopOwner, itemId) {
 function editItemPrompt(shopOwner, itemId, oldName, oldPrice, oldDesc) {
     const newName = prompt("Enter new item name:", oldName);
     if (newName === null) return;
-    const newPrice = prompt("Enter new item price (USDC):", oldPrice);
+    const newPrice = prompt("Enter base price (Regular) in USDC:", oldPrice);
     if (newPrice === null) return;
     const newDesc = prompt("Enter new item description:", oldDesc);
     if (newDesc === null) return;
 
     if (!newName.trim() || !newPrice.trim()) {
         return alert("Name and Price fields cannot be empty.");
+    }
+
+    if (newName.toLowerCase().includes('pizza')) {
+        const medPrice = prompt("Enter Medium size price (USDC):", parseFloat(newPrice) + 2);
+        const largePrice = prompt("Enter Large size price (USDC):", parseFloat(newPrice) + 5);
+        
+        if (medPrice) localStorage.setItem(`item_price_medium_${shopOwner}_${itemId}`, medPrice.trim());
+        if (largePrice) localStorage.setItem(`item_price_large_${shopOwner}_${itemId}`, largePrice.trim());
     }
 
     localStorage.setItem(`item_name_${shopOwner}_${itemId}`, newName.trim());
