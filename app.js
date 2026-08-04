@@ -211,7 +211,10 @@ async function showCustomerStoreView(shopOwner) {
         const cleanOwner = ethers.getAddress(shopOwner);
         const shop = await readOnlyCafePayContract.shops(cleanOwner);
         document.getElementById('cust-shop-name').innerText = shop.shopName || shop[0] || "Shop Not Found";
-        document.getElementById('cust-shop-owner').innerText = `Owner: ${cleanOwner}`;
+        
+        const customTagline = localStorage.getItem(`shop_tagline_${cleanOwner}`) || "Fresh food & delicious coffee served daily!";
+        document.getElementById('cust-shop-owner').innerText = customTagline;
+
         const logoUrl = localStorage.getItem(`shop_logo_${cleanOwner}`);
         const logoContainer = document.getElementById('cust-shop-logo');
         if (logoUrl) {
@@ -259,13 +262,11 @@ async function loadOwnerDashboardMenu() {
     try {
         const cleanAddr = ethers.getAddress(userAddress);
         
-        // ড্যাশবোর্ড বক্সটিকে বড় ও স্ক্রল করার উপযোগী করা
         const modalContent = document.querySelector('#owner-modal > div');
         if (modalContent) {
             modalContent.className = "bg-white rounded-3xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative";
         }
 
-        // QR Code সেকশন যোগ বা আপডেট করা
         let qrContainer = document.getElementById('owner-qr-section');
         if (!qrContainer) {
             const dashboardCard = document.getElementById('card-dashboard');
@@ -276,13 +277,22 @@ async function loadOwnerDashboardMenu() {
         }
         const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddr}`;
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(storeUrl)}`;
+        const currentTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
+
         qrContainer.innerHTML = `
             <h4 class='font-bold text-slate-800 text-base mb-2'>Shop QR Code & Link</h4>
             <p class='text-xs text-slate-500 mb-3'>Customers can scan this to view your menu directly.</p>
             <div class='flex justify-center mb-3'>
                 <img src="${qrApiUrl}" alt="Shop QR Code" class="w-36 h-36 rounded-xl border p-1 bg-white shadow-sm">
             </div>
-            <input type="text" readonly value="${storeUrl}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-600 text-center select-all" onclick="this.select()">
+            <input type="text" readonly value="${storeUrl}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-600 text-center select-all mb-3" onclick="this.select()">
+            <div class="text-left mt-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Shop Subtitle / Tagline:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="input-shop-tagline" value="${currentTagline}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-800">
+                    <button onclick="updateShopTagline('${cleanAddr}')" class="bg-amber-600 text-white text-xs px-3 py-2 rounded-lg font-semibold hover:bg-amber-700">Save</button>
+                </div>
+            </div>
         `;
 
         const menu = await readOnlyCafePayContract.getShopMenu(cleanAddr);
@@ -329,6 +339,15 @@ async function loadOwnerDashboardMenu() {
     } catch (err) {
         console.error("Error loading owner dashboard menu:", err);
     }
+}
+
+function updateShopTagline(shopOwner) {
+    const taglineInput = document.getElementById('input-shop-tagline');
+    if (!taglineInput) return;
+    const newTagline = taglineInput.value.trim();
+    if (!newTagline) return alert("Tagline cannot be empty.");
+    localStorage.setItem(`shop_tagline_${shopOwner}`, newTagline);
+    alert("Shop tagline updated successfully!");
 }
 
 function toggleAvailability(shopOwner, itemId) {
