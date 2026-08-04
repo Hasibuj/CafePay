@@ -164,10 +164,18 @@ async function showCustomerStoreView(shopOwner) {
     menu.forEach((item) => {
       if (!item.active) return;
       const price = ethers.formatUnits(item.price, 6);
+      
+      // Get food image URL saved for item
+      const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
+      const imgElement = foodImgUrl 
+        ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">`
+        : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
+
       const card = document.createElement('div');
-      card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
+      card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
       card.innerHTML = `
         <div>
+          ${imgElement}
           <h4 class="text-lg font-bold text-slate-900">${item.name}</h4>
           <p class="text-amber-700 font-bold mt-1">${price} USDC</p>
         </div>
@@ -245,13 +253,24 @@ async function addItem() {
   if (!signer) return alert("Please connect wallet first.");
   const name = document.getElementById('item-name').value;
   const priceStr = document.getElementById('item-price').value;
+  const foodImgUrl = document.getElementById('item-image').value;
+
   if (!name || !priceStr) return alert("Fill in item details.");
 
   try {
-    showStatus("Adding item...", "info");
+    showStatus("Adding item to blockchain...", "info");
     const tx = await cafePayContract.addItem(name, ethers.parseUnits(priceStr, 6));
-    await tx.wait();
-    showStatus("Item added!", "success");
+    const receipt = await tx.wait();
+
+    // Get latest menu length to assign image to current item ID
+    const menu = await cafePayContract.getShopMenu(userAddress);
+    const newItemId = menu.length - 1;
+
+    if (foodImgUrl && newItemId >= 0) {
+      localStorage.setItem(`item_img_${userAddress}_${newItemId}`, foodImgUrl);
+    }
+
+    showStatus("Item added successfully!", "success");
   } catch (err) {
     showStatus(err.message, "info");
   }
