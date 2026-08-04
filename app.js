@@ -3,12 +3,12 @@ const ARC_CHAIN_CONFIG = {
     chainId: '0x4cf172', // Hexadecimal value of Chain ID 5042002
     chainName: 'Arc Testnet',
     nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-    rpcUrls: ['https://5042002.rpc.thirdweb.com'], // Thirdweb-এর সচল RPC URL
+    rpcUrls: ['https://5042002.rpc.thirdweb.com'], // Thirdweb Active RPC URL
     blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
-const CONTRACT_ADDRESS = "0x3519D9c9F3ba4416D2A428AC3F80DEa63946B672"; // MultiShopCoffee Smart Contract Address
-const USDC_ADDRESS     = "0x3600000000000000000000000000000000000000"; // Arc USDC token address
+const CONTRACT_ADDRESS = "0x3519D9c9F3ba4416D2A428AC3F80DEa63946B672"; 
+const USDC_ADDRESS     = "0x3600000000000000000000000000000000000000"; 
 
 const ABI_CAFEPAY = [
     "function registerShop(string memory _shopName) external",
@@ -41,7 +41,10 @@ async function connectWallet() {
         await switchNetwork();
         provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
-        userAddress = await signer.getAddress();
+        
+        // Checksum Error এড়ানোর জন্য Address ফরম্যাট করা হলো
+        const rawAddress = await signer.getAddress();
+        userAddress = ethers.getAddress(rawAddress);
 
         document.getElementById('btn-connect').innerText = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
 
@@ -92,13 +95,15 @@ async function routeView() {
 // --- Shop Owner Functions ---
 async function loadOwnerDashboard() {
     try {
-        const shop = await cafePayContract.shops(userAddress);
+        const cleanAddress = ethers.getAddress(userAddress);
+        const shop = await cafePayContract.shops(cleanAddress);
+        
         if (shop.exists) {
             document.getElementById('card-register').classList.add('hidden');
             document.getElementById('card-dashboard').classList.remove('hidden');
             document.getElementById('dash-title').innerText = `Dashboard: ${shop.shopName}`;
 
-            const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${userAddress}`;
+            const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddress}`;
             const linkElem = document.getElementById('store-link');
             linkElem.href = storeUrl;
             linkElem.innerText = storeUrl;
@@ -148,7 +153,10 @@ async function addItem() {
 // --- Customer Functions ---
 async function loadCustomerStorefront(shopOwner) {
     try {
-        const shop = await cafePayContract.shops(shopOwner);
+        // shopOwner এড্রেস সঠিক Checksum-এ রূপান্তর
+        const cleanOwner = ethers.getAddress(shopOwner);
+        const shop = await cafePayContract.shops(cleanOwner);
+        
         if (!shop.exists) {
             document.getElementById('cust-shop-name').innerText = "Shop Not Found";
             return;
@@ -157,7 +165,7 @@ async function loadCustomerStorefront(shopOwner) {
         document.getElementById('cust-shop-name').innerText = shop.shopName;
         document.getElementById('cust-shop-owner').innerText = `Owner: ${shop.ownerAddress}`;
 
-        const menu = await cafePayContract.getShopMenu(shopOwner);
+        const menu = await cafePayContract.getShopMenu(cleanOwner);
         const menuContainer = document.getElementById('customer-menu');
         menuContainer.innerHTML = "";
 
@@ -172,7 +180,7 @@ async function loadCustomerStorefront(shopOwner) {
                     <h4>${item.name}</h4>
                     <p><strong>${formattedPrice} USDC</strong></p>
                 </div>
-                <button onclick="buyItem('${shopOwner}', ${item.id}, ${item.price})">Pay with USDC</button>
+                <button onclick="buyItem('${cleanOwner}', ${item.id}, ${item.price})">Pay with USDC</button>
             `;
             menuContainer.appendChild(card);
         });
@@ -186,6 +194,8 @@ window.buyItem = async function(shopOwner, itemId, price) {
     if (!signer) return alert("Please connect wallet first.");
 
     try {
+        const cleanOwner = ethers.getAddress(shopOwner);
+
         // Step 1: Check Allowance & Approve
         showStatus("Step 1/2: Checking USDC allowance...", "info");
         const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
@@ -198,7 +208,7 @@ window.buyItem = async function(shopOwner, itemId, price) {
 
         // Step 2: Execute Purchase
         showStatus("Step 2/2: Confirming item purchase...", "info");
-        const buyTx = await cafePayContract.buyItem(shopOwner, itemId);
+        const buyTx = await cafePayContract.buyItem(cleanOwner, itemId);
         await buyTx.wait();
 
         showStatus("Payment Successful! Order placed.", "success");
