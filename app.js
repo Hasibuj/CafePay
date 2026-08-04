@@ -1,13 +1,8 @@
-// --- Configuration for Arc Network & Contracts ---
 const ARC_CHAIN_CONFIG = {
-  chainId: '0x4cef52', // Hexadecimal value of Chain ID 5042002
+  chainId: '0x4cef52',
   chainName: 'Arc Testnet',
   nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-  rpcUrls: [
-    'https://rpc.testnet.arc.io',         // Primary (Circle) RPC
-    'https://5042002.rpc.thirdweb.com',   // Thirdweb RPC
-    'https://rpc.drpc.testnet.arc.io'     // dRPC
-  ],
+  rpcUrls: ['https://rpc.testnet.arc.io', 'https://5042002.rpc.thirdweb.com'],
   blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
@@ -27,163 +22,130 @@ const ABI_ERC20 = [
   "function allowance(address owner, address spender) external view returns (uint256)"
 ];
 
-// --- Global State ---
 let provider, signer, userAddress;
 let cafePayContract, usdcContract;
 
-// Read-only Provider (for fetching data without wallet connection)
 const readOnlyProvider = new ethers.JsonRpcProvider(ARC_CHAIN_CONFIG.rpcUrls[0]);
 const readOnlyCafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, readOnlyProvider);
 
-// --- Initialize App ---
+// Pre-registered Shops List (Add registered shop owner addresses here)
+const ALL_SHOPS = [
+  "0x8c7a4b87da5777b5c9ce8d68292e4d383ecd7b90"
+];
+
 window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-connect').addEventListener('click', connectWallet);
   document.getElementById('btn-register').addEventListener('click', registerShop);
   document.getElementById('btn-add-item').addEventListener('click', addItem);
+  
+  // Modal listeners
+  document.getElementById('btn-open-owner-modal').addEventListener('click', openOwnerModal);
+  document.getElementById('btn-close-owner-modal').addEventListener('click', closeOwnerModal);
+  document.getElementById('btn-back-to-shops').addEventListener('click', showDirectoryView);
+  
+  // Search listener
+  document.getElementById('search-input').addEventListener('input', filterShops);
 
-  // Load view immediately on page load
   routeView();
 });
 
 async function connectWallet() {
-  if (!window.ethereum) return alert("MetaMask is required to use CaféPay.");
-
+  if (!window.ethereum) return alert("MetaMask is required.");
   try {
     await switchNetwork();
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
-    
-    // Format address to prevent Checksum Error
-    const rawAddress = await signer.getAddress();
-    userAddress = ethers.getAddress(rawAddress);
+    userAddress = ethers.getAddress(await signer.getAddress());
 
     document.getElementById('btn-connect').innerText = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
-    
     cafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, signer);
     usdcContract = new ethers.Contract(USDC_ADDRESS, ABI_ERC20, signer);
 
-    routeView();
+    checkOwnerShopStatus();
   } catch (err) {
-    showStatus("Wallet connection failed: " + err.message, "info");
+    showStatus("Wallet error: " + err.message, "info");
   }
 }
 
-// --- Network Switcher Logic ---
 async function switchNetwork() {
   try {
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: ARC_CHAIN_CONFIG.chainId }],
-    });
-  } catch (switchError) {
-    if (switchError.code === 4902) {
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [ARC_CHAIN_CONFIG],
-      });
-    } else {
-      throw switchError;
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ARC_CHAIN_CONFIG.chainId }] });
+  } catch (err) {
+    if (err.code === 4902) {
+      await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [ARC_CHAIN_CONFIG] });
     }
   }
 }
 
-// --- Routing & UI Display Logic ---
 async function routeView() {
   const urlParams = new URLSearchParams(window.location.search);
-  const shopOwnerParam = urlParams.get('shop');
+  const shopParam = urlParams.get('shop');
 
-  if (shopOwnerParam) {
-    // Render Customer View
-    document.getElementById('view-customer').classList.remove('hidden');
-    loadCustomerStorefront(shopOwnerParam);
+  if (shopParam) {
+    showCustomerStoreView(shopParam);
   } else {
-    // Render Shop Owner View
-    document.getElementById('view-owner').classList.remove('hidden');
-    if (userAddress) {
-      loadOwnerDashboard();
+    showDirectoryView();
+  }
+}
+
+async function showDirectoryView() {
+  document.getElementById('view-customer-store').classList.add('hidden');
+  document.getElementById('view-directory').classList.remove('hidden');
+  loadShopsDirectory();
+}
+
+async function loadShopsDirectory() {
+  const grid = document.getElementById('shops-grid');
+  grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>Loading restaurants...</p>";
+
+  let shopsHtml = "";
+  for (const ownerAddr of ALL_SHOPS) {
+    try {
+      const shop = await readOnlyCafePayContract.shops(ownerAddr);
+      if (shop.exists) {
+        shopsHtml += `
+          <div onclick="openStorefront('${ownerAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
+            <div>
+              <div class="text-3xl mb-2">☕</div>
+              <h3 class="shop-title text-xl font-bold text-slate-900">${shop.shopName}</h3>
+              <p class="text-xs font-mono text-slate-500 mt-1">${ownerAddr.substring(0, 10)}...</p>
+            </div>
+            <button class="mt-4 w-full bg-amber-50 text-amber-900 font-semibold py-2 rounded-xl text-sm border border-amber-200 hover:bg-amber-100">View Menu</button>
+          </div>
+        `;
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
+
+  grid.innerHTML = shopsHtml || "<p class='text-slate-500 col-span-3 text-center'>No restaurants found.</p>";
 }
 
-// --- Shop Owner Functions ---
-async function loadOwnerDashboard() {
-  try {
-    const cleanAddress = ethers.getAddress(userAddress);
-    const shop = await cafePayContract.shops(cleanAddress);
-
-    if (shop.exists) {
-      document.getElementById('card-register').classList.add('hidden');
-      document.getElementById('card-dashboard').classList.remove('hidden');
-      document.getElementById('dash-title').innerText = `Dashboard: ${shop.shopName}`;
-
-      const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddress}`;
-      const linkElem = document.getElementById('store-link');
-      linkElem.href = storeUrl;
-      linkElem.innerText = storeUrl;
-
-      // Render QR Code
-      document.getElementById('qr-code').innerHTML = "";
-      new QRCode(document.getElementById('qr-code'), {
-        text: storeUrl,
-        width: 128,
-        height: 128
-      });
-    }
-  } catch (err) {
-    showStatus("Error loading dashboard: " + err.message, "info");
-  }
+function filterShops() {
+  const query = document.getElementById('search-input').value.toLowerCase();
+  const cards = document.querySelectorAll('#shops-grid > div');
+  cards.forEach(card => {
+    const title = card.querySelector('.shop-title')?.innerText.toLowerCase() || "";
+    card.style.display = title.includes(query) ? "flex" : "none";
+  });
 }
 
-async function registerShop() {
-  if (!signer) return alert("Please connect your wallet first.");
-  const name = document.getElementById('reg-shop-name').value;
-  if (!name) return alert("Please enter a shop name");
-
-  try {
-    showStatus("Registering shop on Arc Network...", "info");
-    const tx = await cafePayContract.registerShop(name);
-    await tx.wait();
-    showStatus("Shop registered successfully!", "success");
-    loadOwnerDashboard();
-  } catch (err) {
-    showStatus(err.reason || err.message, "info");
-  }
+function openStorefront(ownerAddr) {
+  window.history.pushState({}, "", `?shop=${ownerAddr}`);
+  showCustomerStoreView(ownerAddr);
 }
 
-async function addItem() {
-  if (!signer) return alert("Please connect your wallet first.");
-  const name = document.getElementById('item-name').value;
-  const priceStr = document.getElementById('item-price').value;
-  if (!name || !priceStr) return alert("Fill in item details");
+async function showCustomerStoreView(shopOwner) {
+  document.getElementById('view-directory').classList.add('hidden');
+  document.getElementById('view-customer-store').classList.remove('hidden');
 
-  // Convert USDC unit (6 Decimal Precision)
-  const priceInMicroUSDC = ethers.parseUnits(priceStr, 6);
-
-  try {
-    showStatus("Adding item to contract...", "info");
-    const tx = await cafePayContract.addItem(name, priceInMicroUSDC);
-    await tx.wait();
-    showStatus("Item added successfully!", "success");
-  } catch (err) {
-    showStatus(err.reason || err.message, "info");
-  }
-}
-
-// --- Customer Functions ---
-async function loadCustomerStorefront(shopOwner) {
   try {
     const cleanOwner = ethers.getAddress(shopOwner);
-    
-    // Fetch menu using Read-only Provider
     const shop = await readOnlyCafePayContract.shops(cleanOwner);
 
-    if (!shop.exists) {
-      document.getElementById('cust-shop-name').innerText = "Shop Not Found";
-      return;
-    }
-
-    document.getElementById('cust-shop-name').innerText = shop.shopName;
-    document.getElementById('cust-shop-owner').innerText = `Owner: ${shop.ownerAddress}`;
+    document.getElementById('cust-shop-name').innerText = shop.shopName || "Shop Not Found";
+    document.getElementById('cust-shop-owner').innerText = `Owner: ${cleanOwner}`;
 
     const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
     const menuContainer = document.getElementById('customer-menu');
@@ -191,59 +153,116 @@ async function loadCustomerStorefront(shopOwner) {
 
     menu.forEach((item) => {
       if (!item.active) return;
-      const formattedPrice = ethers.formatUnits(item.price, 6);
-
+      const price = ethers.formatUnits(item.price, 6);
       const card = document.createElement('div');
-      card.className = 'menu-item';
+      card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
       card.innerHTML = `
         <div>
-          <h4>${item.name}</h4>
-          <p><strong>${formattedPrice} USDC</strong></p>
+          <h4 class="text-lg font-bold text-slate-900">${item.name}</h4>
+          <p class="text-amber-700 font-bold mt-1">${price} USDC</p>
         </div>
-        <button onclick="buyItem('${cleanOwner}', ${item.id}, ${item.price})">Pay with USDC</button>
+        <button onclick="buyItem('${cleanOwner}', ${item.id}, ${item.price})" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
       `;
       menuContainer.appendChild(card);
     });
   } catch (err) {
-    showStatus("Failed loading storefront: " + err.message, "info");
+    showStatus("Error loading menu: " + err.message, "info");
   }
 }
 
-// 2-Step Payment Protocol: USDC Approve -> Execute Buy
+// Modal Logic
+function openOwnerModal() {
+  document.getElementById('owner-modal').classList.remove('hidden');
+  if (userAddress) checkOwnerShopStatus();
+}
+
+function closeOwnerModal() {
+  document.getElementById('owner-modal').classList.add('hidden');
+}
+
+async function checkOwnerShopStatus() {
+  if (!userAddress) return;
+  try {
+    const cleanAddress = ethers.getAddress(userAddress);
+    const shop = await readOnlyCafePayContract.shops(cleanAddress);
+
+    if (shop.exists) {
+      document.getElementById('card-register').classList.add('hidden');
+      document.getElementById('card-dashboard').classList.remove('hidden');
+      document.getElementById('dash-title').innerText = `Dashboard: ${shop.shopName}`;
+      
+      const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddress}`;
+      document.getElementById('store-link').href = storeUrl;
+      document.getElementById('store-link').innerText = storeUrl;
+
+      document.getElementById('qr-code').innerHTML = "";
+      new QRCode(document.getElementById('qr-code'), { text: storeUrl, width: 100, height: 100 });
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function registerShop() {
+  if (!signer) return alert("Please connect wallet first.");
+  const name = document.getElementById('reg-shop-name').value;
+  if (!name) return alert("Enter shop name.");
+
+  try {
+    showStatus("Registering shop...", "info");
+    const tx = await cafePayContract.registerShop(name);
+    await tx.wait();
+    showStatus("Shop registered successfully!", "success");
+    checkOwnerShopStatus();
+  } catch (err) {
+    showStatus(err.message, "info");
+  }
+}
+
+async function addItem() {
+  if (!signer) return alert("Please connect wallet first.");
+  const name = document.getElementById('item-name').value;
+  const priceStr = document.getElementById('item-price').value;
+  if (!name || !priceStr) return alert("Fill in item details.");
+
+  try {
+    showStatus("Adding item...", "info");
+    const tx = await cafePayContract.addItem(name, ethers.parseUnits(priceStr, 6));
+    await tx.wait();
+    showStatus("Item added!", "success");
+  } catch (err) {
+    showStatus(err.message, "info");
+  }
+}
+
 window.buyItem = async function(shopOwner, itemId, price) {
   if (!signer) {
-    alert("Please connect your wallet first to complete payment.");
+    alert("Connect wallet first.");
     await connectWallet();
     if (!signer) return;
   }
 
   try {
-    const cleanOwner = ethers.getAddress(shopOwner);
-
-    // Step 1: Check Allowance & Approve
-    showStatus("Step 1/2: Checking USDC allowance...", "info");
+    showStatus("1/2: Checking USDC allowance...", "info");
     const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
-    
     if (allowance < price) {
-      showStatus("Step 1/2: Approving USDC transfer...", "info");
+      showStatus("1/2: Approving USDC...", "info");
       const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, price);
       await approveTx.wait();
     }
 
-    // Step 2: Execute Purchase
-    showStatus("Step 2/2: Confirming item purchase...", "info");
-    const buyTx = await cafePayContract.buyItem(cleanOwner, itemId);
+    showStatus("2/2: Confirming payment...", "info");
+    const buyTx = await cafePayContract.buyItem(shopOwner, itemId);
     await buyTx.wait();
 
-    showStatus("Payment Successful! Order placed.", "success");
+    showStatus("Payment Successful!", "success");
   } catch (err) {
-    showStatus("Transaction failed: " + (err.reason || err.message), "info");
+    showStatus("Transaction failed: " + err.message, "info");
   }
 };
 
 function showStatus(msg, statusClass) {
   const el = document.getElementById('status-bar');
-  el.className = `status-${statusClass}`;
   el.innerText = msg;
   el.classList.remove('hidden');
 }
