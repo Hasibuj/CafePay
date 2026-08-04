@@ -106,7 +106,7 @@ async function connectWallet() {
         document.getElementById('btn-connect').innerText = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
         cafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, signer);
         usdcContract = new ethers.Contract(USDC_ADDRESS, ABI_ERC20, signer);
-        checkOwnerShopStatus();
+        await checkOwnerShopStatus();
     } catch (err) {
         alert("Wallet error: " + err.message);
     }
