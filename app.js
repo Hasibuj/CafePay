@@ -94,7 +94,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-back-to-shops').addEventListener('click', showDirectoryView);
     document.getElementById('search-input').addEventListener('input', filterShops);
     
-    // ওয়ালেট কানেক্ট ছাড়াই শপ ওনার প্যানেল বাটন দৃশ্যমান করা হলো
     const ownerModalBtn = document.getElementById('btn-open-owner-modal');
     if (ownerModalBtn) ownerModalBtn.classList.remove('hidden');
 
@@ -224,11 +223,15 @@ async function showCustomerStoreView(shopOwner) {
         const menuContainer = document.getElementById('customer-menu');
         menuContainer.innerHTML = "";
         menu.forEach((item) => {
-            if (!item.active) return;
-            const itemName = item.name;
-            const itemPrice = ethers.formatUnits(item.price, 6);
+            const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
+            if (isDeleted) return;
+
+            const isAvailable = localStorage.getItem(`item_available_${cleanOwner}_${item.id}`) !== 'false';
+            if (!isAvailable) return;
+
+            const itemName = localStorage.getItem(`item_name_${cleanOwner}_${item.id}`) || item.name;
+            const itemPrice = localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6);
             
-            // লোকাল স্টোরেজ থেকে ডেসক্রিপশন এবং ছবি ফেচ করা
             const itemDesc = localStorage.getItem(`item_desc_${cleanOwner}_${item.id}`) || "";
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
             const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">` : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
@@ -251,8 +254,91 @@ async function showCustomerStoreView(shopOwner) {
     }
 }
 
+async function loadOwnerDashboardMenu() {
+    if (!userAddress) return;
+    try {
+        const cleanAddr = ethers.getAddress(userAddress);
+        const menu = await readOnlyCafePayContract.getShopMenu(cleanAddr);
+        let dashMenuContainer = document.getElementById('owner-menu-list');
+        if (!dashMenuContainer) {
+            const modalBody = document.querySelector('#owner-modal .space-y-6') || document.getElementById('owner-modal');
+            dashMenuContainer = document.createElement('div');
+            dashMenuContainer.id = 'owner-menu-list';
+            dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-100 pt-4";
+            modalBody.appendChild(dashMenuContainer);
+        }
+        dashMenuContainer.innerHTML = "<h4 class='font-bold text-slate-800 text-base'>Manage Existing Menu Items</h4>";
+        
+        if (!menu || menu.length === 0) {
+            dashMenuContainer.innerHTML += "<p class='text-sm text-slate-500'>No items added yet.</p>";
+            return;
+        }
+
+        menu.forEach(item => {
+            const isDeleted = localStorage.getItem(`item_deleted_${cleanAddr}_${item.id}`) === 'true';
+            if (isDeleted) return;
+
+            const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${item.id}`) !== 'false';
+            const currentName = localStorage.getItem(`item_name_${cleanAddr}_${item.id}`) || item.name;
+            const currentPrice = localStorage.getItem(`item_price_${cleanAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
+
+            const itemCard = document.createElement('div');
+            itemCard.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm";
+            itemCard.innerHTML = `
+                <div>
+                    <p class="font-semibold text-slate-900">${currentName} <span class="text-xs ${isAvailable ? 'text-green-600 bg-green-50 px-2 py-0.5 rounded' : 'text-red-600 bg-red-50 px-2 py-0.5 rounded'}">${isAvailable ? 'Available' : 'Not Available'}</span></p>
+                    <p class="text-amber-700 text-xs">${currentPrice} USDC</p>
+                </div>
+                <div class="flex gap-1.5 flex-wrap">
+                    <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${isAvailable ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
+                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
+                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
+                </div>
+            `;
+            dashMenuContainer.appendChild(itemCard);
+        });
+    } catch (err) {
+        console.error("Error loading owner dashboard menu:", err);
+    }
+}
+
+function toggleAvailability(shopOwner, itemId) {
+    const currentStatus = localStorage.getItem(`item_available_${shopOwner}_${itemId}`) !== 'false';
+    const newStatus = !currentStatus;
+    localStorage.setItem(`item_available_${shopOwner}_${itemId}`, newStatus.toString());
+    alert(newStatus ? "Item is now Available!" : "Item marked as Not Available!");
+    loadOwnerDashboardMenu();
+}
+
+function editItemPrompt(shopOwner, itemId, oldName, oldPrice) {
+    const newName = prompt("Enter new item name:", oldName);
+    if (newName === null) return;
+    const newPrice = prompt("Enter new item price (USDC):", oldPrice);
+    if (newPrice === null) return;
+
+    if (!newName.trim() || !newPrice.trim()) {
+        return alert("Fields cannot be empty.");
+    }
+
+    localStorage.setItem(`item_name_${shopOwner}_${itemId}`, newName.trim());
+    localStorage.setItem(`item_price_${shopOwner}_${itemId}`, newPrice.trim());
+    alert("Item updated successfully!");
+    loadOwnerDashboardMenu();
+}
+
+function deleteItem(shopOwner, itemId) {
+    if (confirm("Are you sure you want to delete this item?")) {
+        localStorage.setItem(`item_deleted_${shopOwner}_${itemId}`, 'true');
+        alert("Item deleted successfully!");
+        loadOwnerDashboardMenu();
+    }
+}
+
 function openOwnerModal() {
     document.getElementById('owner-modal').classList.remove('hidden');
+    if (userAddress) {
+        loadOwnerDashboardMenu();
+    }
 }
 
 function closeOwnerModal() {
@@ -285,13 +371,11 @@ async function addItem() {
         const parsedPrice = ethers.parseUnits(price, 6);
         const tx = await cafePayContract.addItem(name, parsedPrice);
         
-        // ট্রানজেকশন সফল হলে আইটেমের আইডি বের করে লোকাল স্টোরেজে ডেসক্রিপশন ও ছবি সেভ করা
-        const receipt = await tx.wait();
+        await tx.wait();
         
-        // মেনু লিস্ট থেকে নতুন যুক্ত হওয়া আইটেমের আইডি পাওয়ার জন্য মেনু রিফেচ করা হচ্ছে
         const menu = await cafePayContract.getShopMenu(userAddress);
         if (menu && menu.length > 0) {
-            const newItem = menu[menu.length - 1]; // সর্বশেষ যোগ করা আইটেম
+            const newItem = menu[menu.length - 1];
             if (description) {
                 localStorage.setItem(`item_desc_${userAddress}_${newItem.id}`, description);
             }
@@ -305,6 +389,8 @@ async function addItem() {
         document.getElementById('item-name').value = "";
         document.getElementById('item-price').value = "";
         if (document.getElementById('item-desc')) document.getElementById('item-desc').value = "";
+        
+        loadOwnerDashboardMenu();
     } catch (err) {
         alert("Error: " + (err.reason || err.message));
     }
@@ -350,6 +436,7 @@ async function checkOwnerShopStatus() {
             if (logoUrl) {
                 document.getElementById('dash-shop-logo').innerHTML = `<img src="${logoUrl}" class="w-full h-full object-cover">`;
             }
+            loadOwnerDashboardMenu();
         }
     } catch (err) {
         console.error("Error checking shop status:", err);
