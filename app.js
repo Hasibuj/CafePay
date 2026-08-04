@@ -9,6 +9,9 @@ const ARC_CHAIN_CONFIG = {
 const CONTRACT_ADDRESS = "0x3519D9c9F3ba4416D2A428AC3F80DEa63946B672";
 const USDC_ADDRESS     = "0x3600000000000000000000000000000000000000";
 
+// Free ImgBB API Key (ইচ্ছামতো নিজস্ব key বসাতে পারেন)
+const IMGBB_API_KEY = "3b4f62fa28f4d5efbe38bbcdbaeb08b4"; 
+
 const ABI_CAFEPAY = [
   "function registerShop(string memory _shopName) external",
   "function addItem(string memory _name, uint256 _price) external",
@@ -31,6 +34,34 @@ const readOnlyCafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPA
 const ALL_SHOPS = [
   "0x8c7a4b87da5777b5c9ce8d68292e4d383ecd7b90"
 ];
+
+// হেলপার ফাংশন: ফাইলকে সরাসরি অনলাইনে আপলোড করে URL এনে দেবে
+async function uploadImageFile(fileInputId) {
+  const input = document.getElementById(fileInputId);
+  if (!input || !input.files[0]) return null;
+
+  const file = input.files[0];
+  const formData = new FormData();
+  formData.append("image", file);
+
+  try {
+    showStatus("Uploading image...", "info");
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      return data.data.url;
+    } else {
+      console.error("Image upload failed:", data);
+      return null;
+    }
+  } catch (err) {
+    console.error("Upload error:", err);
+    return null;
+  }
+}
 
 window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-connect').addEventListener('click', connectWallet);
@@ -165,7 +196,6 @@ async function showCustomerStoreView(shopOwner) {
       if (!item.active) return;
       const price = ethers.formatUnits(item.price, 6);
       
-      // Get food image URL saved for item
       const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
       const imgElement = foodImgUrl 
         ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">`
@@ -228,17 +258,18 @@ async function checkOwnerShopStatus() {
 async function registerShop() {
   if (!signer) return alert("Please connect wallet first.");
   const name = document.getElementById('reg-shop-name').value;
-  const logoUrl = document.getElementById('reg-shop-logo').value;
-  
   if (!name) return alert("Enter shop name.");
 
   try {
-    showStatus("Registering shop...", "info");
+    // ১. ফাইল নির্বাচন করা থাকলে সেটি সার্ভারে আপলোড করা হবে
+    const uploadedLogoUrl = await uploadImageFile('reg-shop-logo-file');
+
+    showStatus("Registering shop on blockchain...", "info");
     const tx = await cafePayContract.registerShop(name);
     await tx.wait();
 
-    if (logoUrl) {
-      localStorage.setItem(`shop_logo_${userAddress}`, logoUrl);
+    if (uploadedLogoUrl) {
+      localStorage.setItem(`shop_logo_${userAddress}`, uploadedLogoUrl);
     }
 
     showStatus("Shop registered successfully!", "success");
@@ -253,21 +284,22 @@ async function addItem() {
   if (!signer) return alert("Please connect wallet first.");
   const name = document.getElementById('item-name').value;
   const priceStr = document.getElementById('item-price').value;
-  const foodImgUrl = document.getElementById('item-image').value;
 
   if (!name || !priceStr) return alert("Fill in item details.");
 
   try {
+    // ১. কাস্টম ফাইল থাকলে আপলোড করা হবে
+    const uploadedFoodImgUrl = await uploadImageFile('item-image-file');
+
     showStatus("Adding item to blockchain...", "info");
     const tx = await cafePayContract.addItem(name, ethers.parseUnits(priceStr, 6));
-    const receipt = await tx.wait();
+    await tx.wait();
 
-    // Get latest menu length to assign image to current item ID
     const menu = await cafePayContract.getShopMenu(userAddress);
     const newItemId = menu.length - 1;
 
-    if (foodImgUrl && newItemId >= 0) {
-      localStorage.setItem(`item_img_${userAddress}_${newItemId}`, foodImgUrl);
+    if (uploadedFoodImgUrl && newItemId >= 0) {
+      localStorage.setItem(`item_img_${userAddress}_${newItemId}`, uploadedFoodImgUrl);
     }
 
     showStatus("Item added successfully!", "success");
