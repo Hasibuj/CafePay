@@ -28,7 +28,6 @@ let cafePayContract, usdcContract;
 const readOnlyProvider = new ethers.JsonRpcProvider(ARC_CHAIN_CONFIG.rpcUrls[0]);
 const readOnlyCafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, readOnlyProvider);
 
-// Pre-registered Shops List (Add registered shop owner addresses here)
 const ALL_SHOPS = [
   "0x8c7a4b87da5777b5c9ce8d68292e4d383ecd7b90"
 ];
@@ -38,12 +37,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-register').addEventListener('click', registerShop);
   document.getElementById('btn-add-item').addEventListener('click', addItem);
   
-  // Modal listeners
   document.getElementById('btn-open-owner-modal').addEventListener('click', openOwnerModal);
   document.getElementById('btn-close-owner-modal').addEventListener('click', closeOwnerModal);
   document.getElementById('btn-back-to-shops').addEventListener('click', showDirectoryView);
   
-  // Search listener
   document.getElementById('search-input').addEventListener('input', filterShops);
 
   routeView();
@@ -103,10 +100,15 @@ async function loadShopsDirectory() {
     try {
       const shop = await readOnlyCafePayContract.shops(ownerAddr);
       if (shop.exists) {
+        const logoUrl = localStorage.getItem(`shop_logo_${ownerAddr}`);
+        const logoElement = logoUrl 
+          ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">`
+          : `<div class="text-3xl">☕</div>`;
+
         shopsHtml += `
           <div onclick="openStorefront('${ownerAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
             <div>
-              <div class="text-3xl mb-2">☕</div>
+              <div class="mb-3">${logoElement}</div>
               <h3 class="shop-title text-xl font-bold text-slate-900">${shop.shopName}</h3>
               <p class="text-xs font-mono text-slate-500 mt-1">${ownerAddr.substring(0, 10)}...</p>
             </div>
@@ -147,6 +149,14 @@ async function showCustomerStoreView(shopOwner) {
     document.getElementById('cust-shop-name').innerText = shop.shopName || "Shop Not Found";
     document.getElementById('cust-shop-owner').innerText = `Owner: ${cleanOwner}`;
 
+    const logoUrl = localStorage.getItem(`shop_logo_${cleanOwner}`);
+    const logoContainer = document.getElementById('cust-shop-logo');
+    if (logoUrl) {
+      logoContainer.innerHTML = `<img src="${logoUrl}" class="w-full h-full object-cover">`;
+    } else {
+      logoContainer.innerHTML = `☕`;
+    }
+
     const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
     const menuContainer = document.getElementById('customer-menu');
     menuContainer.innerHTML = "";
@@ -170,7 +180,6 @@ async function showCustomerStoreView(shopOwner) {
   }
 }
 
-// Modal Logic
 function openOwnerModal() {
   document.getElementById('owner-modal').classList.remove('hidden');
   if (userAddress) checkOwnerShopStatus();
@@ -191,6 +200,11 @@ async function checkOwnerShopStatus() {
       document.getElementById('card-dashboard').classList.remove('hidden');
       document.getElementById('dash-title').innerText = `Dashboard: ${shop.shopName}`;
       
+      const logoUrl = localStorage.getItem(`shop_logo_${cleanAddress}`);
+      if (logoUrl) {
+        document.getElementById('dash-shop-logo').innerHTML = `<img src="${logoUrl}" class="w-full h-full object-cover">`;
+      }
+
       const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddress}`;
       document.getElementById('store-link').href = storeUrl;
       document.getElementById('store-link').innerText = storeUrl;
@@ -206,14 +220,22 @@ async function checkOwnerShopStatus() {
 async function registerShop() {
   if (!signer) return alert("Please connect wallet first.");
   const name = document.getElementById('reg-shop-name').value;
+  const logoUrl = document.getElementById('reg-shop-logo').value;
+  
   if (!name) return alert("Enter shop name.");
 
   try {
     showStatus("Registering shop...", "info");
     const tx = await cafePayContract.registerShop(name);
     await tx.wait();
+
+    if (logoUrl) {
+      localStorage.setItem(`shop_logo_${userAddress}`, logoUrl);
+    }
+
     showStatus("Shop registered successfully!", "success");
     checkOwnerShopStatus();
+    loadShopsDirectory();
   } catch (err) {
     showStatus(err.message, "info");
   }
