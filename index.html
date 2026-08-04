@@ -56,13 +56,13 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        <!-- COMPACT SMART TOP BANNER -->
+        <!-- COMPACT SMART TOP BANNER WITH SMART IMAGES (NO PRICE/NAME) -->
         <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-amber-950/30 to-slate-900 rounded-2xl p-6 md:p-8 border border-slate-800 shadow-xl flex flex-col lg:flex-row justify-between items-center gap-6">
             <!-- Glow background effect -->
             <div class="absolute -right-16 -top-16 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
             <div class="absolute left-1/4 bottom-0 w-40 h-40 bg-amber-600/5 rounded-full blur-2xl pointer-events-none"></div>
 
-            <!-- Left Content (Smaller & Compact) -->
+            <!-- Left Content -->
             <div class="relative z-10 max-w-lg">
                 <span class="inline-block bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold px-3 py-0.5 rounded-full mb-3">Web3 Dining Experience</span>
                 <h2 class="text-2xl md:text-3xl font-black tracking-tight text-white mb-2">Discover Local Cafes & Restaurants</h2>
@@ -80,21 +80,13 @@
                 </div>
             </div>
 
-            <!-- Right Side: Updated Smart Food Cards -->
-            <div class="relative z-10 w-full lg:w-auto flex flex-row sm:flex-row lg:flex-col gap-3 justify-center">
-                <div class="flex-1 sm:w-56 bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 rounded-xl flex items-center gap-3 shadow-md backdrop-blur-md hover:border-amber-500/50 transition">
-                    <span class="text-2xl">🍕</span>
-                    <div>
-                        <p class="text-xs font-bold text-white">Crispy Pizza</p>
-                        <p class="text-[10px] text-amber-400 font-semibold">12.00 USDC</p>
-                    </div>
+            <!-- Right Side: Smart Professional Image Collage (No text/price) -->
+            <div class="relative z-10 w-full lg:w-auto flex flex-row gap-3 justify-center">
+                <div class="w-36 h-28 sm:w-44 sm:h-32 rounded-xl overflow-hidden border border-slate-700/80 shadow-lg group">
+                    <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80" alt="Cafe ambiance" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                 </div>
-                <div class="flex-1 sm:w-56 bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 rounded-xl flex items-center gap-3 shadow-md backdrop-blur-md hover:border-amber-500/50 transition">
-                    <span class="text-2xl">🍣</span>
-                    <div>
-                        <p class="text-xs font-bold text-white">Fresh Sushi Combo</p>
-                        <p class="text-[10px] text-amber-400 font-semibold">15.50 USDC</p>
-                    </div>
+                <div class="w-36 h-28 sm:w-44 sm:h-32 rounded-xl overflow-hidden border border-slate-700/80 shadow-lg group">
+                    <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" alt="Gourmet dish" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                 </div>
             </div>
         </div>
