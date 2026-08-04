@@ -174,26 +174,28 @@ async function loadShopsDirectory() {
 
   for (const ownerAddr of allShopAddresses) {
     try {
-      const shop = await readOnlyCafePayContract.shops(ownerAddr);
-      if (shop.exists) {
-        const logoUrl = localStorage.getItem(`shop_logo_${ownerAddr}`);
+      const cleanAddr = ethers.getAddress(ownerAddr);
+      const shop = await readOnlyCafePayContract.shops(cleanAddr);
+      
+      if (shop && shop.exists && shop.shopName) {
+        const logoUrl = localStorage.getItem(`shop_logo_${cleanAddr}`);
         const logoElement = logoUrl 
           ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">`
           : `<div class="text-3xl">☕</div>`;
 
         shopsHtml += `
-          <div onclick="openStorefront('${ownerAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
+          <div onclick="openStorefront('${cleanAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
             <div>
               <div class="mb-3">${logoElement}</div>
               <h3 class="shop-title text-xl font-bold text-slate-900">${shop.shopName}</h3>
-              <p class="text-xs font-mono text-slate-500 mt-1">${ownerAddr.substring(0, 10)}...</p>
+              <p class="text-xs font-mono text-slate-500 mt-1">${cleanAddr.substring(0, 10)}...</p>
             </div>
             <button class="mt-4 w-full bg-amber-50 text-amber-900 font-semibold py-2 rounded-xl text-sm border border-amber-200 hover:bg-amber-100">View Menu</button>
           </div>
         `;
       }
     } catch (e) {
-      console.error(e);
+      console.error("Error loading shop:", ownerAddr, e);
     }
   }
 
@@ -442,7 +444,7 @@ async function addItem() {
     showStatus("Item added successfully!", "success");
     checkOwnerShopStatus();
   } catch (err) {
-    showStatus(err.message, "info");
+    showStatus("Error: " + err.message, "info");
   }
 }
 
