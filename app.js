@@ -1,6 +1,6 @@
 // --- Configuration for Arc Network & Contracts ---
 const ARC_CHAIN_CONFIG = {
-  chainId: '0x4cf172', // Hexadecimal value of Chain ID 5042002
+  chainId: '0x4cef52', // Hexadecimal value of Chain ID 5042002
   chainName: 'Arc Testnet',
   nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
   rpcUrls: [
