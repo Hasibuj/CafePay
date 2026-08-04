@@ -2,7 +2,10 @@ const ARC_CHAIN_CONFIG = {
     chainId: '0x4cef52',
     chainName: 'Arc Testnet',
     nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-    rpcUrls: ['https://rpc.testnet.arc.io', 'https://5042002.rpc.thirdweb.com'],
+    rpcUrls: [
+        'https://rpc.blockdaemon.testnet.arc.io',
+        'https://rpc.drpc.testnet.arc.io'
+    ],
     blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
@@ -144,30 +147,23 @@ async function showDirectoryView() {
 async function loadShopsDirectory() {
     const grid = document.getElementById('shops-grid');
     if (!grid) return;
-    
     grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>Loading restaurants from blockchain...</p>";
-    
     try {
         const allShopAddresses = await getAllShops();
         if (!allShopAddresses || allShopAddresses.length === 0) {
             grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>No restaurants found.</p>";
             return;
         }
-
         let shopsHtml = "";
-
         for (const ownerAddr of allShopAddresses) {
             try {
                 const cleanAddr = ethers.getAddress(ownerAddr);
                 const shop = await readOnlyCafePayContract.shops(cleanAddr);
-                
                 if (shop && shop.exists) {
                     const shopName = shop.shopName || shop[0];
                     if (!shopName) continue;
-
                     const logoUrl = localStorage.getItem(`shop_logo_${cleanAddr}`);
                     const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">` : `<div class="text-3xl">☕</div>`;
-                    
                     shopsHtml += `
                         <div onclick="openStorefront('${cleanAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
                             <div>
@@ -183,7 +179,6 @@ async function loadShopsDirectory() {
                 console.error("Error parsing shop:", ownerAddr, innerErr);
             }
         }
-        
         grid.innerHTML = shopsHtml || "<p class='text-slate-500 col-span-3 text-center'>No active restaurants found.</p>";
     } catch (err) {
         console.error("Error loading shops directory:", err);
@@ -213,7 +208,6 @@ async function showCustomerStoreView(shopOwner) {
         const shop = await readOnlyCafePayContract.shops(cleanOwner);
         document.getElementById('cust-shop-name').innerText = shop.shopName || shop[0] || "Shop Not Found";
         document.getElementById('cust-shop-owner').innerText = `Owner: ${cleanOwner}`;
-
         const logoUrl = localStorage.getItem(`shop_logo_${cleanOwner}`);
         const logoContainer = document.getElementById('cust-shop-logo');
         if (logoUrl) {
@@ -221,20 +215,16 @@ async function showCustomerStoreView(shopOwner) {
         } else {
             logoContainer.innerHTML = `☕`;
         }
-
         const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
         const menuContainer = document.getElementById('customer-menu');
         menuContainer.innerHTML = "";
-
         menu.forEach((item) => {
             const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
             if (!item.active || isDeleted) return;
-
             const currentName = localStorage.getItem(`item_name_${cleanOwner}_${item.id}`) || item.name;
             const currentPrice = localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6);
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
             const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">` : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
-
             const card = document.createElement('div');
             card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
             card.innerHTML = `
@@ -243,22 +233,79 @@ async function showCustomerStoreView(shopOwner) {
                     <h4 class="text-lg font-bold text-slate-900">${currentName}</h4>
                     <p class="text-amber-700 font-bold mt-1">${currentPrice} USDC</p>
                 </div>
-                <button onclick="buyItem('${cleanOwner}', ${item.id}, ${ethers.parseUnits(currentPrice, 6)})" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
+                <button onclick="buyItem('${cleanOwner}', ${item.id}, '${currentPrice}')" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
             `;
             menuContainer.appendChild(card);
         });
     } catch (err) {
-        showStatus("Error loading menu: " + err.message, "info");
+        console.error("Error loading menu:", err);
     }
 }
 
 function openOwnerModal() {
     document.getElementById('owner-modal').classList.remove('hidden');
-    if (userAddress) checkOwnerShopStatus();
 }
 
 function closeOwnerModal() {
     document.getElementById('owner-modal').classList.add('hidden');
+}
+
+async function registerShop() {
+    if (!cafePayContract) return alert("Please connect wallet first.");
+    const name = document.getElementById('reg-shop-name').value.trim();
+    if (!name) return alert("Please enter a shop name.");
+    try {
+        const tx = await cafePayContract.registerShop(name);
+        await tx.wait();
+        alert("Shop registered successfully!");
+        checkOwnerShopStatus();
+        loadShopsDirectory();
+    } catch (err) {
+        alert("Error: " + (err.reason || err.message));
+    }
+}
+
+async function addItem() {
+    if (!cafePayContract) return alert("Please connect wallet first.");
+    const name = document.getElementById('item-name').value.trim();
+    const price = document.getElementById('item-price').value.trim();
+    if (!name || !price) return alert("Please fill in item details.");
+    try {
+        const parsedPrice = ethers.parseUnits(price, 6);
+        const tx = await cafePayContract.addItem(name, parsedPrice);
+        await tx.wait();
+        alert("Item added successfully!");
+        document.getElementById('item-name').value = "";
+        document.getElementById('item-price').value = "";
+    } catch (err) {
+        alert("Error: " + (err.reason || err.message));
+    }
+}
+
+async function updateShopLogo() {
+    if (!userAddress) return alert("Please connect wallet first.");
+    const logoUrl = await uploadImageFile('shop-logo-input');
+    if (!logoUrl) return alert("Please select an image.");
+    localStorage.setItem(`shop_logo_${userAddress}`, logoUrl);
+    alert("Shop logo updated successfully!");
+    checkOwnerShopStatus();
+}
+
+async function buyItem(shopOwner, itemIndex, priceInUSDC) {
+    if (!signer) return alert("Please connect wallet to buy.");
+    try {
+        const parsedAmount = ethers.parseUnits(priceInUSDC.toString(), 6);
+        const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
+        if (allowance < parsedAmount) {
+            const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, parsedAmount);
+            await approveTx.wait();
+        }
+        const buyTx = await cafePayContract.buyItem(shopOwner, itemIndex);
+        await buyTx.wait();
+        alert("Payment successful!");
+    } catch (err) {
+        alert("Transaction failed: " + (err.reason || err.message));
+    }
 }
 
 async function checkOwnerShopStatus() {
@@ -271,173 +318,12 @@ async function checkOwnerShopStatus() {
             document.getElementById('card-dashboard').classList.remove('hidden');
             const shopName = shop.shopName || shop[0];
             document.getElementById('dash-title').innerText = `Dashboard: ${shopName}`;
-            
             const logoUrl = localStorage.getItem(`shop_logo_${cleanAddress}`);
             if (logoUrl) {
                 document.getElementById('dash-shop-logo').innerHTML = `<img src="${logoUrl}" class="w-full h-full object-cover">`;
             }
-
-            const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddress}`;
-            document.getElementById('store-link').href = storeUrl;
-            document.getElementById('store-link').innerText = storeUrl;
-            document.getElementById('qr-code').innerHTML = "";
-            new QRCode(document.getElementById('qr-code'), { text: storeUrl, width: 100, height: 100 });
-            
-            loadOwnerManageItemsList(cleanAddress);
-        }
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-async function loadOwnerManageItemsList(ownerAddr) {
-    const container = document.getElementById('owner-menu-manage-list');
-    container.innerHTML = "<p class='text-xs text-slate-400'>Loading menu items...</p>";
-    try {
-        const menu = await readOnlyCafePayContract.getShopMenu(ownerAddr);
-        container.innerHTML = "";
-        menu.forEach((item) => {
-            const isDeleted = localStorage.getItem(`item_deleted_${ownerAddr}_${item.id}`) === 'true';
-            if (isDeleted) return;
-
-            const name = localStorage.getItem(`item_name_${ownerAddr}_${item.id}`) || item.name;
-            const price = localStorage.getItem(`item_price_${ownerAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
-
-            const div = document.createElement('div');
-            div.className = "p-3 bg-slate-50 border rounded-lg flex items-center justify-between text-xs";
-            div.innerHTML = `
-                <div>
-                    <p class="font-bold text-slate-800">${name}</p>
-                    <p class="text-slate-500">${price} USDC</p>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="editMenuItem(${item.id})" class="px-2 py-1 bg-amber-500 text-white font-semibold rounded hover:bg-amber-600">Edit</button>
-                    <button onclick="deleteMenuItem(${item.id})" class="px-2 py-1 bg-red-500 text-white font-semibold rounded hover:bg-red-600">Delete</button>
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-window.editMenuItem = function(itemId) {
-    const currentName = localStorage.getItem(`item_name_${userAddress}_${itemId}`) || "";
-    const currentPrice = localStorage.getItem(`item_price_${userAddress}_${itemId}`) || "";
-    const newName = prompt("Enter new item name:", currentName);
-    if (newName === null) return;
-    const newPrice = prompt("Enter new item price (USDC):", currentPrice);
-    if (newPrice === null) return;
-
-    if (newName.trim()) localStorage.setItem(`item_name_${userAddress}_${itemId}`, newName.trim());
-    if (newPrice.trim()) localStorage.setItem(`item_price_${userAddress}_${itemId}`, newPrice.trim());
-    showStatus("Item details updated successfully!", "success");
-    checkOwnerShopStatus();
-};
-
-window.deleteMenuItem = function(itemId) {
-    if (confirm("Are you sure you want to delete this menu item?")) {
-        localStorage.setItem(`item_deleted_${userAddress}_${itemId}`, 'true');
-        showStatus("Item deleted successfully!", "success");
-        checkOwnerShopStatus();
-    }
-};
-
-async function updateShopLogo() {
-    if (!userAddress) return alert("Please connect wallet first.");
-    const logoInput = document.getElementById('update-shop-logo-file');
-    if (!logoInput || !logoInput.files[0]) return alert("Please select an image file first.");
-    try {
-        showStatus("Processing image...", "info");
-        const uploadedLogoUrl = await uploadImageFile('update-shop-logo-file');
-        if (uploadedLogoUrl) {
-            localStorage.setItem(`shop_logo_${userAddress}`, uploadedLogoUrl);
-            const dashLogo = document.getElementById('dash-shop-logo');
-            if (dashLogo) {
-                dashLogo.innerHTML = `<img src="${uploadedLogoUrl}" class="w-full h-full object-cover">`;
-            }
-            showStatus("Shop logo updated successfully!", "success");
-            loadShopsDirectory();
-        } else {
-            showStatus("Failed to process image.", "info");
         }
     } catch (err) {
-        showStatus("Error: " + err.message, "info");
-    }
-}
-
-async function registerShop() {
-    if (!signer) return alert("Please connect wallet first.");
-    const name = document.getElementById('reg-shop-name').value;
-    if (!name) return alert("Enter shop name.");
-    try {
-        const uploadedLogoUrl = await uploadImageFile('reg-shop-logo-file');
-        showStatus("Registering shop on blockchain...", "info");
-        const tx = await cafePayContract.registerShop(name);
-        await tx.wait();
-        
-        if (uploadedLogoUrl) {
-            localStorage.setItem(`shop_logo_${userAddress}`, uploadedLogoUrl);
-        }
-        showStatus("Shop registered successfully!", "success");
-        checkOwnerShopStatus();
-        loadShopsDirectory();
-    } catch (err) {
-        showStatus(err.message, "info");
-    }
-}
-
-async function addItem() {
-    if (!signer) return alert("Please connect wallet first.");
-    const name = document.getElementById('item-name').value;
-    const priceStr = document.getElementById('item-price').value;
-    if (!name || !priceStr) return alert("Fill in item details.");
-    try {
-        const uploadedFoodImgUrl = await uploadImageFile('item-image-file');
-        showStatus("Adding item to blockchain...", "info");
-        const tx = await cafePayContract.addItem(name, ethers.parseUnits(priceStr, 6));
-        await tx.wait();
-
-        const menu = await cafePayContract.getShopMenu(userAddress);
-        const newItemId = menu.length - 1;
-        if (uploadedFoodImgUrl && newItemId >= 0) {
-            localStorage.setItem(`item_img_${userAddress}_${newItemId}`, uploadedFoodImgUrl);
-        }
-        showStatus("Item added successfully!", "success");
-        checkOwnerShopStatus();
-    } catch (err) {
-        showStatus("Error: " + err.message, "info");
-    }
-}
-
-window.buyItem = async function(shopOwner, itemId, price) {
-    if (!signer) {
-        alert("Connect wallet first.");
-        await connectWallet();
-        if (!signer) return;
-    }
-    try {
-        showStatus("1/2: Checking USDC allowance...", "info");
-        const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
-        if (allowance < price) {
-            showStatus("1/2: Approving USDC...", "info");
-            const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, price);
-            await approveTx.wait();
-        }
-        showStatus("2/2: Confirming payment...", "info");
-        const buyTx = await cafePayContract.buyItem(shopOwner, itemId);
-        await buyTx.wait();
-        showStatus("Payment Successful!", "success");
-    } catch (err) {
-        showStatus("Transaction failed: " + err.message, "info");
-    }
-};
-
-function showStatus(msg, statusClass) {
-    const el = document.getElementById('status-bar');
-    if (el) {
-        el.innerText = msg;
-        el.classList.remove('hidden');
+        console.error("Error checking shop status:", err);
     }
 }
