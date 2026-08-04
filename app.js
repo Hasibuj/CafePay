@@ -29,7 +29,6 @@ let cafePayContract, usdcContract;
 const readOnlyProvider = new ethers.JsonRpcProvider(ARC_CHAIN_CONFIG.rpcUrls[0]);
 const readOnlyCafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, readOnlyProvider);
 
-// Helper to get all registered shop addresses dynamically from the smart contract
 async function getAllShops() {
     try {
         const shops = await readOnlyCafePayContract.getAllShops();
@@ -40,7 +39,6 @@ async function getAllShops() {
     }
 }
 
-// Image uploader with automatic compression to prevent LocalStorage quota errors
 function uploadImageFile(fileInputId) {
     return new Promise((resolve) => {
         const input = document.getElementById(fileInputId);
@@ -145,35 +143,52 @@ async function showDirectoryView() {
 
 async function loadShopsDirectory() {
     const grid = document.getElementById('shops-grid');
+    if (!grid) return;
+    
     grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>Loading restaurants from blockchain...</p>";
     
-    const allShopAddresses = await getAllShops();
-    let shopsHtml = "";
-
-    for (const ownerAddr of allShopAddresses) {
-        try {
-            const cleanAddr = ethers.getAddress(ownerAddr);
-            const shop = await readOnlyCafePayContract.shops(cleanAddr);
-            if (shop && shop.exists && shop.shopName) {
-                const logoUrl = localStorage.getItem(`shop_logo_${cleanAddr}`);
-                const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">` : `<div class="text-3xl">☕</div>`;
-                
-                shopsHtml += `
-                    <div onclick="openStorefront('${cleanAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
-                        <div>
-                            <div class="mb-3">${logoElement}</div>
-                            <h3 class="shop-title text-xl font-bold text-slate-900">${shop.shopName}</h3>
-                            <p class="text-xs font-mono text-slate-500 mt-1">${cleanAddr.substring(0, 10)}...</p>
-                        </div>
-                        <button class="mt-4 w-full bg-amber-50 text-amber-900 font-semibold py-2 rounded-xl text-sm border border-amber-200 hover:bg-amber-100">View Menu</button>
-                    </div>
-                `;
-            }
-        } catch (e) {
-            console.error("Error loading shop:", ownerAddr, e);
+    try {
+        const allShopAddresses = await getAllShops();
+        if (!allShopAddresses || allShopAddresses.length === 0) {
+            grid.innerHTML = "<p class='text-slate-500 col-span-3 text-center'>No restaurants found.</p>";
+            return;
         }
+
+        let shopsHtml = "";
+
+        for (const ownerAddr of allShopAddresses) {
+            try {
+                const cleanAddr = ethers.getAddress(ownerAddr);
+                const shop = await readOnlyCafePayContract.shops(cleanAddr);
+                
+                if (shop && shop.exists) {
+                    const shopName = shop.shopName || shop[0];
+                    if (!shopName) continue;
+
+                    const logoUrl = localStorage.getItem(`shop_logo_${cleanAddr}`);
+                    const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">` : `<div class="text-3xl">☕</div>`;
+                    
+                    shopsHtml += `
+                        <div onclick="openStorefront('${cleanAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
+                            <div>
+                                <div class="mb-3">${logoElement}</div>
+                                <h3 class="shop-title text-xl font-bold text-slate-900">${shopName}</h3>
+                                <p class="text-xs font-mono text-slate-500 mt-1">${cleanAddr.substring(0, 10)}...</p>
+                            </div>
+                            <button class="mt-4 w-full bg-amber-50 text-amber-900 font-semibold py-2 rounded-xl text-sm border border-amber-200 hover:bg-amber-100">View Menu</button>
+                        </div>
+                    `;
+                }
+            } catch (innerErr) {
+                console.error("Error parsing shop:", ownerAddr, innerErr);
+            }
+        }
+        
+        grid.innerHTML = shopsHtml || "<p class='text-slate-500 col-span-3 text-center'>No active restaurants found.</p>";
+    } catch (err) {
+        console.error("Error loading shops directory:", err);
+        grid.innerHTML = "<p class='text-red-500 col-span-3 text-center'>Failed to load restaurants.</p>";
     }
-    grid.innerHTML = shopsHtml || "<p class='text-slate-500 col-span-3 text-center'>No restaurants found.</p>";
 }
 
 function filterShops() {
@@ -196,7 +211,7 @@ async function showCustomerStoreView(shopOwner) {
     try {
         const cleanOwner = ethers.getAddress(shopOwner);
         const shop = await readOnlyCafePayContract.shops(cleanOwner);
-        document.getElementById('cust-shop-name').innerText = shop.shopName || "Shop Not Found";
+        document.getElementById('cust-shop-name').innerText = shop.shopName || shop[0] || "Shop Not Found";
         document.getElementById('cust-shop-owner').innerText = `Owner: ${cleanOwner}`;
 
         const logoUrl = localStorage.getItem(`shop_logo_${cleanOwner}`);
@@ -254,7 +269,8 @@ async function checkOwnerShopStatus() {
         if (shop.exists) {
             document.getElementById('card-register').classList.add('hidden');
             document.getElementById('card-dashboard').classList.remove('hidden');
-            document.getElementById('dash-title').innerText = `Dashboard: ${shop.shopName}`;
+            const shopName = shop.shopName || shop[0];
+            document.getElementById('dash-title').innerText = `Dashboard: ${shopName}`;
             
             const logoUrl = localStorage.getItem(`shop_logo_${cleanAddress}`);
             if (logoUrl) {
@@ -420,6 +436,8 @@ window.buyItem = async function(shopOwner, itemId, price) {
 
 function showStatus(msg, statusClass) {
     const el = document.getElementById('status-bar');
-    el.innerText = msg;
-    el.classList.remove('hidden');
+    if (el) {
+        el.innerText = msg;
+        el.classList.remove('hidden');
+    }
 }
