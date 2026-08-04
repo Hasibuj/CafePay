@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaféPay — Multi-Tenant Web3 Coffee Marketplace</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --glass-bg: rgba(22, 27, 34, 0.75);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --success: #238636;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--accent-color); }
+
+        button {
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover { background: var(--accent-hover); }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .menu-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #qr-code { margin-top: 12px; background: white; padding: 10px; display: inline-block; border-radius: 8px; }
+        .hidden { display: none; }
+        #status-bar { padding: 12px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
+        .status-info { background: rgba(59, 130, 246, 0.1); color: var(--accent-color); }
+        .status-success { background: rgba(35, 134, 54, 0.2); color: #3fb950; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>☕ CaféPay</h1>
+        <button id="btn-connect">Connect Wallet</button>
+    </header>
+
+    <div id="status-bar" class="status-info hidden"></div>
+
+    <!-- Shop Owner View -->
+    <div id="view-owner" class="hidden">
+        <div class="card" id="card-register">
+            <h2>Register Your Store</h2>
+            <div class="form-group">
+                <label>Store Name</label>
+                <input type="text" id="reg-shop-name" placeholder="e.g. Crypto Roasters">
+            </div>
+            <button id="btn-register">Register Shop</button>
+        </div>
+
+        <div class="card hidden" id="card-dashboard">
+            <h2 id="dash-title">Shop Dashboard</h2>
+            <h3>Add Menu Item</h3>
+            <div class="form-group">
+                <input type="text" id="item-name" placeholder="Item Name (e.g. Espresso)">
+                <input type="number" step="0.01" id="item-price" placeholder="Price in USDC (e.g. 3.50)">
+            </div>
+            <button id="btn-add-item">Add to Menu</button>
+            <hr style="border-color: var(--border-color); margin: 20px 0;">
+            <h3>Your Store Link & QR Code</h3>
+            <p><a id="store-link" href="#" target="_blank" style="color: var(--accent-color);"></a></p>
+            <div id="qr-code"></div>
+        </div>
+    </div>
+
+    <!-- Customer View -->
+    <div id="view-customer" class="hidden">
+        <div class="card">
+            <h2 id="cust-shop-name">Loading Store...</h2>
+            <p id="cust-shop-owner" style="color: var(--text-muted); font-size: 0.9rem;"></p>
+            <div id="customer-menu" class="menu-grid"></div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
