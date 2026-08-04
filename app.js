@@ -281,17 +281,19 @@ async function loadOwnerDashboardMenu() {
             const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${item.id}`) !== 'false';
             const currentName = localStorage.getItem(`item_name_${cleanAddr}_${item.id}`) || item.name;
             const currentPrice = localStorage.getItem(`item_price_${cleanAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
+            const currentDesc = localStorage.getItem(`item_desc_${cleanAddr}_${item.id}`) || "";
 
             const itemCard = document.createElement('div');
             itemCard.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm";
             itemCard.innerHTML = `
                 <div>
                     <p class="font-semibold text-slate-900">${currentName} <span class="text-xs ${isAvailable ? 'text-green-600 bg-green-50 px-2 py-0.5 rounded' : 'text-red-600 bg-red-50 px-2 py-0.5 rounded'}">${isAvailable ? 'Available' : 'Not Available'}</span></p>
-                    <p class="text-amber-700 text-xs">${currentPrice} USDC</p>
+                    <p class="text-xs text-slate-500 mt-0.5">${currentDesc}</p>
+                    <p class="text-amber-700 text-xs mt-1 font-semibold">${currentPrice} USDC</p>
                 </div>
                 <div class="flex gap-1.5 flex-wrap">
                     <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${isAvailable ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
-                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
+                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}', '${currentDesc.replace(/'/g, "\\'")}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
                     <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
                 </div>
             `;
@@ -310,18 +312,22 @@ function toggleAvailability(shopOwner, itemId) {
     loadOwnerDashboardMenu();
 }
 
-function editItemPrompt(shopOwner, itemId, oldName, oldPrice) {
+function editItemPrompt(shopOwner, itemId, oldName, oldPrice, oldDesc) {
     const newName = prompt("Enter new item name:", oldName);
     if (newName === null) return;
     const newPrice = prompt("Enter new item price (USDC):", oldPrice);
     if (newPrice === null) return;
+    const newDesc = prompt("Enter new item description:", oldDesc);
+    if (newDesc === null) return;
 
     if (!newName.trim() || !newPrice.trim()) {
-        return alert("Fields cannot be empty.");
+        return alert("Name and Price fields cannot be empty.");
     }
 
     localStorage.setItem(`item_name_${shopOwner}_${itemId}`, newName.trim());
     localStorage.setItem(`item_price_${shopOwner}_${itemId}`, newPrice.trim());
+    localStorage.setItem(`item_desc_${shopOwner}_${itemId}`, newDesc.trim());
+    
     alert("Item updated successfully!");
     loadOwnerDashboardMenu();
 }
