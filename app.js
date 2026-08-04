@@ -220,21 +220,36 @@ async function showCustomerStoreView(shopOwner) {
         menuContainer.innerHTML = "";
         menu.forEach((item) => {
             const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
-            if (!item.active || isDeleted) return;
+            if (isDeleted) return;
+
+            const isAvailable = localStorage.getItem(`item_available_${cleanOwner}_${item.id}`) !== 'false';
             const currentName = localStorage.getItem(`item_name_${cleanOwner}_${item.id}`) || item.name;
             const currentPrice = localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6);
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
             const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">` : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
+            
             const card = document.createElement('div');
             card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
-            card.innerHTML = `
-                <div>
-                    ${imgElement}
-                    <h4 class="text-lg font-bold text-slate-900">${currentName}</h4>
-                    <p class="text-amber-700 font-bold mt-1">${currentPrice} USDC</p>
-                </div>
-                <button onclick="buyItem('${cleanOwner}', ${item.id}, '${currentPrice}')" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
-            `;
+            
+            if (!isAvailable) {
+                card.innerHTML = `
+                    <div>
+                        ${imgElement}
+                        <h4 class="text-lg font-bold text-slate-400 line-through">${currentName}</h4>
+                        <p class="text-slate-400 font-bold mt-1">${currentPrice} USDC</p>
+                    </div>
+                    <button disabled class="mt-4 bg-slate-200 text-slate-500 font-semibold py-2 rounded-xl cursor-not-allowed">Not Available</button>
+                `;
+            } else {
+                card.innerHTML = `
+                    <div>
+                        ${imgElement}
+                        <h4 class="text-lg font-bold text-slate-900">${currentName}</h4>
+                        <p class="text-amber-700 font-bold mt-1">${currentPrice} USDC</p>
+                    </div>
+                    <button onclick="buyItem('${cleanOwner}', ${item.id}, '${currentPrice}')" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
+                `;
+            }
             menuContainer.appendChild(card);
         });
     } catch (err) {
@@ -300,7 +315,6 @@ async function loadOwnerDashboardMenu() {
         const menu = await readOnlyCafePayContract.getShopMenu(cleanAddr);
         let dashMenuContainer = document.getElementById('owner-menu-list');
         if (!dashMenuContainer) {
-            // যদি মডালে মেনু দেখানোর জন্য কোনো কন্টেইনার না থাকে, তবে তা ডাইনামিকালি তৈরি করে নেব
             const modalBody = document.querySelector('#owner-modal .p-6') || document.getElementById('owner-modal');
             dashMenuContainer = document.createElement('div');
             dashMenuContainer.id = 'owner-menu-list';
@@ -318,6 +332,7 @@ async function loadOwnerDashboardMenu() {
             const isDeleted = localStorage.getItem(`item_deleted_${cleanAddr}_${item.id}`) === 'true';
             if (isDeleted) return;
 
+            const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${item.id}`) !== 'false';
             const currentName = localStorage.getItem(`item_name_${cleanAddr}_${item.id}`) || item.name;
             const currentPrice = localStorage.getItem(`item_price_${cleanAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
 
@@ -325,12 +340,13 @@ async function loadOwnerDashboardMenu() {
             itemCard.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm";
             itemCard.innerHTML = `
                 <div>
-                    <p class="font-semibold text-slate-900">${currentName}</p>
+                    <p class="font-semibold text-slate-900">${currentName} <span class="text-xs ${isAvailable ? 'text-green-600 bg-green-50 px-2 py-0.5 rounded' : 'text-red-600 bg-red-50 px-2 py-0.5 rounded'}">${isAvailable ? 'Available' : 'Not Available'}</span></p>
                     <p class="text-amber-700 text-xs">${currentPrice} USDC</p>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}')" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
-                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-3 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
+                <div class="flex gap-1.5 flex-wrap">
+                    <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${isAvailable ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
+                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
+                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
                 </div>
             `;
             dashMenuContainer.appendChild(itemCard);
@@ -338,6 +354,14 @@ async function loadOwnerDashboardMenu() {
     } catch (err) {
         console.error("Error loading owner dashboard menu:", err);
     }
+}
+
+function toggleAvailability(shopOwner, itemId) {
+    const currentStatus = localStorage.getItem(`item_available_${shopOwner}_${itemId}`) !== 'false';
+    const newStatus = !currentStatus;
+    localStorage.setItem(`item_available_${shopOwner}_${itemId}`, newStatus.toString());
+    alert(newStatus ? "Item is now Available!" : "Item marked as Not Available!");
+    loadOwnerDashboardMenu();
 }
 
 function editItemPrompt(shopOwner, itemId, oldName, oldPrice) {
