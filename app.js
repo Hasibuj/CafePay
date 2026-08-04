@@ -25,6 +25,7 @@ const ABI_ERC20 = [
 
 let provider, signer, userAddress;
 let cafePayContract, usdcContract;
+let currentCategory = 'all';
 
 const readOnlyProvider = new ethers.JsonRpcProvider(ARC_CHAIN_CONFIG.rpcUrls[0]);
 const readOnlyCafePayContract = new ethers.Contract(CONTRACT_ADDRESS, ABI_CAFEPAY, readOnlyProvider);
@@ -88,7 +89,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-open-owner-modal')?.addEventListener('click', openOwnerModal);
     document.getElementById('btn-close-owner-modal')?.addEventListener('click', closeOwnerModal);
     document.getElementById('btn-back-to-shops')?.addEventListener('click', showDirectoryView);
-    document.getElementById('search-input')?.addEventListener('input', filterShops);
+    document.getElementById('search-input')?.addEventListener('input', applyFilters);
 
     const ownerModalBtn = document.getElementById('btn-open-owner-modal');
     if (ownerModalBtn) ownerModalBtn.classList.remove('hidden');
@@ -174,8 +175,16 @@ async function loadShopsDirectory() {
                     const customTagline = localStorage.getItem(`shop_tagline_${cleanAddr}`) || "Fresh food & delicious coffee served daily!";
                     const logoElement = logoUrl ? `<img src="${logoUrl}" class="w-12 h-12 rounded-xl object-cover border" alt="Logo">` : `<div class="text-3xl">☕</div>`;
 
+                    const shopNameLower = shopName.toLowerCase();
+                    let assignedCategory = 'coffee';
+                    if (shopNameLower.includes('burger') || shopNameLower.includes('pizza') || shopNameLower.includes('fast')) {
+                        assignedCategory = 'fastfood';
+                    } else if (shopNameLower.includes('bakery') || shopNameLower.includes('bread') || shopNameLower.includes('cafe')) {
+                        assignedCategory = 'bakery';
+                    }
+
                     shopsHtml += `
-                        <div onclick="openStorefront('${cleanAddr}')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
+                        <div onclick="openStorefront('${cleanAddr}')" data-category="${assignedCategory}" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between">
                             <div>
                                 <div class="mb-3">${logoElement}</div>
                                 <h3 class="shop-title text-xl font-bold text-slate-900">${shopName}</h3>
@@ -190,18 +199,44 @@ async function loadShopsDirectory() {
             }
         }
         grid.innerHTML = shopsHtml || "<p class='text-slate-500 col-span-3 text-center'>No active restaurants found.</p>";
+        applyFilters();
     } catch (err) {
         console.error("Error loading directory:", err);
         grid.innerHTML = "<p class='text-red-500 col-span-3 text-center'>Failed to load restaurants.</p>";
     }
 }
 
-function filterShops() {
-    const query = document.getElementById('search-input')?.value.toLowerCase() || "";
+function filterByCategory(category) {
+    currentCategory = category;
+
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('bg-amber-600', 'text-white', 'shadow-sm');
+        btn.classList.add('bg-white/20');
+    });
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.remove('bg-white/20');
+        event.currentTarget.classList.add('bg-amber-600', 'text-white', 'shadow-sm');
+    }
+
+    applyFilters();
+}
+
+function applyFilters() {
+    const searchQuery = document.getElementById('search-input')?.value.toLowerCase() || "";
     const cards = document.querySelectorAll('#shops-grid > div');
+
     cards.forEach(card => {
         const title = card.querySelector('.shop-title')?.innerText.toLowerCase() || "";
-        card.style.display = title.includes(query) ? "flex" : "none";
+        const categoryAttr = card.getAttribute('data-category') || 'coffee';
+
+        const matchesSearch = title.includes(searchQuery);
+        const matchesCategory = (currentCategory === 'all' || categoryAttr === currentCategory);
+
+        if (matchesSearch && matchesCategory) {
+            card.style.display = "flex";
+        } else {
+            card.style.display = "none";
+        }
     });
 }
 
