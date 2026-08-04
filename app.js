@@ -258,14 +258,41 @@ async function loadOwnerDashboardMenu() {
     if (!userAddress) return;
     try {
         const cleanAddr = ethers.getAddress(userAddress);
+        
+        // ড্যাশবোর্ড বক্সটিকে বড় ও স্ক্রল করার উপযোগী করা
+        const modalContent = document.querySelector('#owner-modal > div');
+        if (modalContent) {
+            modalContent.className = "bg-white rounded-3xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative";
+        }
+
+        // QR Code সেকশন যোগ বা আপডেট করা
+        let qrContainer = document.getElementById('owner-qr-section');
+        if (!qrContainer) {
+            const dashboardCard = document.getElementById('card-dashboard');
+            qrContainer = document.createElement('div');
+            qrContainer.id = 'owner-qr-section';
+            qrContainer.className = "mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center";
+            dashboardCard.appendChild(qrContainer);
+        }
+        const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${cleanAddr}`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(storeUrl)}`;
+        qrContainer.innerHTML = `
+            <h4 class='font-bold text-slate-800 text-base mb-2'>Shop QR Code & Link</h4>
+            <p class='text-xs text-slate-500 mb-3'>Customers can scan this to view your menu directly.</p>
+            <div class='flex justify-center mb-3'>
+                <img src="${qrApiUrl}" alt="Shop QR Code" class="w-36 h-36 rounded-xl border p-1 bg-white shadow-sm">
+            </div>
+            <input type="text" readonly value="${storeUrl}" class="w-full text-xs bg-white border border-slate-200 p-2 rounded-lg text-slate-600 text-center select-all" onclick="this.select()">
+        `;
+
         const menu = await readOnlyCafePayContract.getShopMenu(cleanAddr);
         let dashMenuContainer = document.getElementById('owner-menu-list');
         if (!dashMenuContainer) {
-            const modalBody = document.querySelector('#owner-modal .space-y-6') || document.getElementById('owner-modal');
+            const dashboardCard = document.getElementById('card-dashboard');
             dashMenuContainer = document.createElement('div');
             dashMenuContainer.id = 'owner-menu-list';
-            dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-100 pt-4";
-            modalBody.appendChild(dashMenuContainer);
+            dashMenuContainer.className = "mt-6 space-y-3 border-t border-slate-100 pt-6";
+            dashboardCard.appendChild(dashMenuContainer);
         }
         dashMenuContainer.innerHTML = "<h4 class='font-bold text-slate-800 text-base'>Manage Existing Menu Items</h4>";
         
