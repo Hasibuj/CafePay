@@ -1,13 +1,13 @@
 // --- Configuration for Arc Network & Contracts ---
 const ARC_CHAIN_CONFIG = {
-    chainId: '0x1388', // Update with Arc Network's exact hexadecimal Chain ID
-    chainName: 'Arc Network',
-    nativeCurrency: { name: 'Arc Token', symbol: 'ARC', decimals: 18 },
-    rpcUrls: ['https://rpc.arc.network'], 
-    blockExplorerUrls: ['https://explorer.arc.network']
+    chainId: '0x4cf172', // Hexadecimal value of Chain ID 5042002
+    chainName: 'Arc Testnet',
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+    rpcUrls: ['https://5042002.rpc.thirdweb.com'], // Thirdweb-এর সচল RPC URL
+    blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
-const CONTRACT_ADDRESS = "0x8c7A287019FA0aB3e8F0D3aCFa38Ff0EEb777B90"; // আপনার ডিপ্লয় করা কন্ট্রাক্ট এড্রেস
+const CONTRACT_ADDRESS = "0x3519D9c9F3ba4416D2A428AC3F80DEa63946B672"; // MultiShopCoffee Smart Contract Address
 const USDC_ADDRESS     = "0x3600000000000000000000000000000000000000"; // Arc USDC token address
 
 const ABI_CAFEPAY = [
@@ -28,7 +28,7 @@ let provider, signer, userAddress;
 let cafePayContract, usdcContract;
 
 // --- Initialize App ---
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-connect').addEventListener('click', connectWallet);
     document.getElementById('btn-register').addEventListener('click', registerShop);
     document.getElementById('btn-add-item').addEventListener('click', addItem);
@@ -39,8 +39,6 @@ async function connectWallet() {
 
     try {
         await switchNetwork();
-        
-        // পাব্লিক RPC এড়িয়ে সরাসরি মেটামাস্ক প্রোভাইডার ব্যবহার করা হচ্ছে
         provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         userAddress = await signer.getAddress();
@@ -81,9 +79,11 @@ async function routeView() {
     const shopOwnerParam = urlParams.get('shop');
 
     if (shopOwnerParam) {
+        // Render Customer View
         document.getElementById('view-customer').classList.remove('hidden');
         loadCustomerStorefront(shopOwnerParam);
     } else {
+        // Render Shop Owner View
         document.getElementById('view-owner').classList.remove('hidden');
         loadOwnerDashboard();
     }
@@ -97,12 +97,13 @@ async function loadOwnerDashboard() {
             document.getElementById('card-register').classList.add('hidden');
             document.getElementById('card-dashboard').classList.remove('hidden');
             document.getElementById('dash-title').innerText = `Dashboard: ${shop.shopName}`;
-            
+
             const storeUrl = `${window.location.origin}${window.location.pathname}?shop=${userAddress}`;
             const linkElem = document.getElementById('store-link');
             linkElem.href = storeUrl;
             linkElem.innerText = storeUrl;
 
+            // Render QR Code
             document.getElementById('qr-code').innerHTML = "";
             new QRCode(document.getElementById('qr-code'), { text: storeUrl, width: 128, height: 128 });
         }
@@ -131,6 +132,7 @@ async function addItem() {
     const priceStr = document.getElementById('item-price').value;
     if (!name || !priceStr) return alert("Fill in item details");
 
+    // Convert USDC unit (6 Decimal Precision)
     const priceInMicroUSDC = ethers.parseUnits(priceStr, 6);
 
     try {
@@ -162,7 +164,7 @@ async function loadCustomerStorefront(shopOwner) {
         menu.forEach((item) => {
             if (!item.active) return;
             const formattedPrice = ethers.formatUnits(item.price, 6);
-            
+
             const card = document.createElement('div');
             card.className = 'menu-item';
             card.innerHTML = `
@@ -179,20 +181,22 @@ async function loadCustomerStorefront(shopOwner) {
     }
 }
 
-// 2-Step Payment Protocol
+// 2-Step Payment Protocol: USDC Approve -> Execute Buy
 window.buyItem = async function(shopOwner, itemId, price) {
     if (!signer) return alert("Please connect wallet first.");
 
     try {
+        // Step 1: Check Allowance & Approve
         showStatus("Step 1/2: Checking USDC allowance...", "info");
         const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
-        
+
         if (allowance < price) {
             showStatus("Step 1/2: Approving USDC transfer...", "info");
             const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, price);
             await approveTx.wait();
         }
 
+        // Step 2: Execute Purchase
         showStatus("Step 2/2: Confirming item purchase...", "info");
         const buyTx = await cafePayContract.buyItem(shopOwner, itemId);
         await buyTx.wait();
