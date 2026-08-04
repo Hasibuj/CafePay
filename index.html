@@ -111,7 +111,16 @@
           </div>
         </div>
 
-        <!-- Add Item with Food Image File -->
+        <!-- Update Shop Logo Option -->
+        <div class="space-y-3 border-t pt-4">
+          <h4 class="font-bold text-slate-900 text-sm">Update Shop Logo</h4>
+          <input type="file" id="update-shop-logo-file" accept="image/*" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
+          <button id="btn-update-logo" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-lg text-sm shadow">
+            Update Logo
+          </button>
+        </div>
+
+        <!-- Add Item -->
         <div class="space-y-3 border-t pt-4">
           <h4 class="font-bold text-slate-900">Add Menu Item</h4>
           <div>
@@ -129,6 +138,14 @@
           <button id="btn-add-item" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg shadow">
             + Add to Menu
           </button>
+        </div>
+
+        <!-- Manage Menu Items (Edit / Delete) -->
+        <div class="space-y-3 border-t pt-4">
+          <h4 class="font-bold text-slate-900 text-sm">Manage Existing Menu Items</h4>
+          <div id="owner-menu-manage-list" class="space-y-3 max-h-60 overflow-y-auto">
+            <!-- Items rendered via JS -->
+          </div>
         </div>
 
         <div class="border-t pt-4 text-center space-y-2">
