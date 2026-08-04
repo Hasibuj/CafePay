@@ -227,6 +227,7 @@ async function showCustomerStoreView(shopOwner) {
         const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
         const menuContainer = document.getElementById('customer-menu');
         menuContainer.innerHTML = "";
+        
         menu.forEach((item) => {
             const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
             if (isDeleted) return;
@@ -235,12 +236,13 @@ async function showCustomerStoreView(shopOwner) {
             if (!isAvailable) return;
 
             const itemName = localStorage.getItem(`item_name_${cleanOwner}_${item.id}`) || item.name;
-            const itemPrice = localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6);
-            
+            const basePrice = parseFloat(localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6));
             const itemDesc = localStorage.getItem(`item_desc_${cleanOwner}_${item.id}`) || "";
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
             const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">` : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
             
+            const isPizza = itemName.toLowerCase().includes('pizza');
+
             const card = document.createElement('div');
             card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
             card.innerHTML = `
@@ -248,14 +250,90 @@ async function showCustomerStoreView(shopOwner) {
                     ${imgElement}
                     <h4 class="text-lg font-bold text-slate-900">${itemName}</h4>
                     <p class="text-xs text-slate-500 mt-1 mb-2">${itemDesc}</p>
-                    <p class="text-amber-700 font-bold">${itemPrice} USDC</p>
+                    
+                    ${isPizza ? `
+                    <div class="mb-3">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Select Size:</label>
+                        <select id="size-${cleanOwner}-${item.id}" onchange="updateItemPrice('${cleanOwner}', ${item.id}, ${basePrice})" class="w-full text-xs bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-800">
+                            <option value="regular">Regular (Base Price)</option>
+                            <option value="medium">Medium (+2 USDC)</option>
+                            <option value="large">Large (+5 USDC)</option>
+                        </select>
+                    </div>
+                    ` : ''}
+
+                    <div class="mb-3 flex items-center justify-between">
+                        <label class="text-xs font-semibold text-slate-700">Quantity:</label>
+                        <div class="flex items-center gap-2">
+                            <button onclick="adjustQty('${cleanOwner}', ${item.id}, -1, ${basePrice})" class="w-7 h-7 bg-slate-100 rounded-lg font-bold text-slate-700 hover:bg-slate-200">-</button>
+                            <span id="qty-${cleanOwner}-${item.id}" class="text-sm font-bold text-slate-800">1</span>
+                            <button onclick="adjustQty('${cleanOwner}', ${item.id}, 1, ${basePrice})" class="w-7 h-7 bg-slate-100 rounded-lg font-bold text-slate-700 hover:bg-slate-200">+</button>
+                        </div>
+                    </div>
+
+                    <p class="text-amber-700 font-bold text-sm">Price: <span id="price-display-${cleanOwner}-${item.id}">${basePrice.toFixed(2)}</span> USDC</p>
                 </div>
-                <button onclick="buyItem('${cleanOwner}', ${item.id}, '${itemPrice}')" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition">Pay with USDC</button>
+                <button onclick="buyCustomItem('${cleanOwner}', ${item.id})" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl transition text-sm">Pay with USDC</button>
             `;
             menuContainer.appendChild(card);
         });
     } catch (err) {
         console.error("Error loading menu:", err);
+    }
+}
+
+function calculateCurrentPrice(shopOwner, itemId, basePrice) {
+    const sizeSelect = document.getElementById(`size-${shopOwner}-${itemId}`);
+    let sizeMultiplier = 0;
+    if (sizeSelect) {
+        if (sizeSelect.value === 'medium') sizeMultiplier = 2;
+        if (sizeSelect.value === 'large') sizeMultiplier = 5;
+    }
+
+    const qtySpan = document.getElementById(`qty-${shopOwner}-${itemId}`);
+    const qty = qtySpan ? parseInt(qtySpan.innerText) : 1;
+
+    return (basePrice + sizeMultiplier) * qty;
+}
+
+function updateItemPrice(shopOwner, itemId, basePrice) {
+    const finalPrice = calculateCurrentPrice(shopOwner, itemId, basePrice);
+    const priceDisplay = document.getElementById(`price-display-${shopOwner}-${itemId}`);
+    if (priceDisplay) {
+        priceDisplay.innerText = finalPrice.toFixed(2);
+    }
+}
+
+function adjustQty(shopOwner, itemId, change, basePrice) {
+    const qtySpan = document.getElementById(`qty-${shopOwner}-${itemId}`);
+    if (!qtySpan) return;
+    let currentQty = parseInt(qtySpan.innerText) + change;
+    if (currentQty < 1) currentQty = 1;
+    qtySpan.innerText = currentQty;
+    updateItemPrice(shopOwner, itemId, basePrice);
+}
+
+async function buyCustomItem(shopOwner, itemIndex) {
+    if (!signer) return alert("Please connect wallet to buy.");
+    try {
+        const basePriceStr = localStorage.getItem(`item_price_${shopOwner}_${itemIndex}`);
+        const menu = await readOnlyCafePayContract.getShopMenu(shopOwner);
+        const itemObj = menu.find(i => Number(i.id) === Number(itemIndex));
+        const basePrice = basePriceStr ? parseFloat(basePriceStr) : parseFloat(ethers.formatUnits(itemObj.price, 6));
+
+        const finalAmount = calculateCurrentPrice(shopOwner, itemIndex, basePrice);
+        const parsedAmount = ethers.parseUnits(finalAmount.toString(), 6);
+
+        const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
+        if (allowance < parsedAmount) {
+            const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, parsedAmount);
+            await approveTx.wait();
+        }
+        const buyTx = await cafePayContract.buyItem(shopOwner, itemIndex);
+        await buyTx.wait();
+        alert(`Payment of ${finalAmount.toFixed(2)} USDC successful!`);
+    } catch (err) {
+        alert("Transaction failed: " + (err.reason || err.message));
     }
 }
 
@@ -459,23 +537,6 @@ async function updateShopLogo() {
     alert("Shop logo updated successfully!");
     checkOwnerShopStatus();
     loadShopsDirectory();
-}
-
-async function buyItem(shopOwner, itemIndex, priceInUSDC) {
-    if (!signer) return alert("Please connect wallet to buy.");
-    try {
-        const parsedAmount = ethers.parseUnits(priceInUSDC.toString(), 6);
-        const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
-        if (allowance < parsedAmount) {
-            const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, parsedAmount);
-            await approveTx.wait();
-        }
-        const buyTx = await cafePayContract.buyItem(shopOwner, itemIndex);
-        await buyTx.wait();
-        alert("Payment successful!");
-    } catch (err) {
-        alert("Transaction failed: " + (err.reason || err.message));
-    }
 }
 
 async function checkOwnerShopStatus() {
