@@ -2,10 +2,7 @@ const ARC_CHAIN_CONFIG = {
     chainId: '0x4cef52',
     chainName: 'Arc Testnet',
     nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-    rpcUrls: [
-        'https://rpc.blockdaemon.testnet.arc.io',
-        'https://rpc.drpc.testnet.arc.io'
-    ],
+    rpcUrls: ['https://rpc.blockdaemon.testnet.arc.io', 'https://rpc.drpc.testnet.arc.io'],
     blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
@@ -208,6 +205,7 @@ async function showCustomerStoreView(shopOwner) {
         const shop = await readOnlyCafePayContract.shops(cleanOwner);
         document.getElementById('cust-shop-name').innerText = shop.shopName || shop[0] || "Shop Not Found";
         document.getElementById('cust-shop-owner').innerText = `Owner: ${cleanOwner}`;
+
         const logoUrl = localStorage.getItem(`shop_logo_${cleanOwner}`);
         const logoContainer = document.getElementById('cust-shop-logo');
         if (logoUrl) {
@@ -215,9 +213,11 @@ async function showCustomerStoreView(shopOwner) {
         } else {
             logoContainer.innerHTML = `☕`;
         }
+
         const menu = await readOnlyCafePayContract.getShopMenu(cleanOwner);
         const menuContainer = document.getElementById('customer-menu');
         menuContainer.innerHTML = "";
+
         menu.forEach((item) => {
             const isDeleted = localStorage.getItem(`item_deleted_${cleanOwner}_${item.id}`) === 'true';
             if (isDeleted) return;
@@ -226,11 +226,11 @@ async function showCustomerStoreView(shopOwner) {
             const currentName = localStorage.getItem(`item_name_${cleanOwner}_${item.id}`) || item.name;
             const currentPrice = localStorage.getItem(`item_price_${cleanOwner}_${item.id}`) || ethers.formatUnits(item.price, 6);
             const foodImgUrl = localStorage.getItem(`item_img_${cleanOwner}_${item.id}`);
+
             const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-full h-36 object-cover rounded-xl mb-3">` : `<div class="w-full h-36 bg-amber-50 rounded-xl mb-3 flex items-center justify-center text-4xl">🍔</div>`;
-            
             const card = document.createElement('div');
             card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between";
-            
+
             if (!isAvailable) {
                 card.innerHTML = `
                     <div>
@@ -290,9 +290,21 @@ async function addItem() {
         const parsedPrice = ethers.parseUnits(price, 6);
         const tx = await cafePayContract.addItem(name, parsedPrice);
         await tx.wait();
+
+        const menu = await readOnlyCafePayContract.getShopMenu(userAddress);
+        const newItem = menu[menu.length - 1];
+        if (newItem) {
+            const compressedImg = await uploadImageFile('item-image-file');
+            if (compressedImg) {
+                localStorage.setItem(`item_img_${userAddress}_${newItem.id}`, compressedImg);
+            }
+        }
+
         alert("Item added successfully!");
         document.getElementById('item-name').value = "";
         document.getElementById('item-price').value = "";
+        const fileInput = document.getElementById('item-image-file');
+        if (fileInput) fileInput.value = "";
         loadOwnerDashboardMenu();
     } catch (err) {
         alert("Error: " + (err.reason || err.message));
@@ -301,126 +313,141 @@ async function addItem() {
 
 async function updateShopLogo() {
     if (!userAddress) return alert("Please connect wallet first.");
-    const logoUrl = await uploadImageFile('shop-logo-input');
-    if (!logoUrl) return alert("Please select an image.");
-    localStorage.setItem(`shop_logo_${userAddress}`, logoUrl);
-    alert("Shop logo updated successfully!");
-    checkOwnerShopStatus();
+    try {
+        const compressedLogo = await uploadImageFile('shop-logo-file');
+        if (!compressedLogo) return alert("Please select a logo image.");
+        localStorage.setItem(`shop_logo_${userAddress}`, compressedLogo);
+        alert("Shop logo updated successfully!");
+        const fileInput = document.getElementById('shop-logo-file');
+        if (fileInput) fileInput.value = "";
+        checkOwnerShopStatus();
+    } catch (err) {
+        alert("Error updating logo: " + err.message);
+    }
+}
+
+async function checkOwnerShopStatus() {
+    if (!userAddress || !cafePayContract) return;
+    try {
+        const shop = await readOnlyCafePayContract.shops(userAddress);
+        const regSection = document.getElementById('section-register-shop');
+        const ownerContent = document.getElementById('section-owner-content');
+        const openBtn = document.getElementById('btn-open-owner-modal');
+
+        if (shop && shop.exists) {
+            if (regSection) regSection.classList.add('hidden');
+            if (ownerContent) ownerContent.classList.remove('hidden');
+            if (openBtn) openBtn.classList.remove('hidden');
+            const shopName = shop.shopName || shop[0];
+            document.getElementById('owner-shop-title').innerText = `Dashboard: ${shopName}`;
+            generateOwnerStoreLink(userAddress);
+        } else {
+            if (regSection) regSection.classList.remove('hidden');
+            if (ownerContent) ownerContent.classList.add('hidden');
+            if (openBtn) openBtn.classList.add('hidden');
+        }
+    } catch (err) {
+        console.error("Error checking owner shop status:", err);
+    }
+}
+
+function generateOwnerStoreLink(ownerAddr) {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const storeUrl = `${baseUrl}?shop=${ownerAddr}`;
+    const linkInput = document.getElementById('owner-store-link');
+    if (linkInput) linkInput.value = storeUrl;
+
+    const qrContainer = document.getElementById('owner-qr-code');
+    if (qrContainer) {
+        qrContainer.innerHTML = "";
+        new QRCode(qrContainer, {
+            text: storeUrl,
+            width: 128,
+            height: 128,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
 }
 
 async function loadOwnerDashboardMenu() {
     if (!userAddress) return;
     try {
-        const cleanAddr = ethers.getAddress(userAddress);
-        const menu = await readOnlyCafePayContract.getShopMenu(cleanAddr);
-        let dashMenuContainer = document.getElementById('owner-menu-list');
-        if (!dashMenuContainer) {
-            const modalBody = document.querySelector('#owner-modal .p-6') || document.getElementById('owner-modal');
-            dashMenuContainer = document.createElement('div');
-            dashMenuContainer.id = 'owner-menu-list';
-            dashMenuContainer.className = "mt-6 space-y-3";
-            modalBody.appendChild(dashMenuContainer);
-        }
-        dashMenuContainer.innerHTML = "<h4 class='font-bold text-slate-800 text-base'>Manage Menu Items</h4>";
-        
+        const menu = await readOnlyCafePayContract.getShopMenu(userAddress);
+        const container = document.getElementById('owner-manage-menu-container');
+        if (!container) return;
+        container.innerHTML = "";
+
         if (!menu || menu.length === 0) {
-            dashMenuContainer.innerHTML += "<p class='text-sm text-slate-500'>No items added yet.</p>";
+            container.innerHTML = "<p class='text-slate-500 text-sm'>No items added yet.</p>";
             return;
         }
 
-        menu.forEach(item => {
-            const isDeleted = localStorage.getItem(`item_deleted_${cleanAddr}_${item.id}`) === 'true';
+        menu.forEach((item) => {
+            const isDeleted = localStorage.getItem(`item_deleted_${userAddress}_${item.id}`) === 'true';
             if (isDeleted) return;
 
-            const isAvailable = localStorage.getItem(`item_available_${cleanAddr}_${item.id}`) !== 'false';
-            const currentName = localStorage.getItem(`item_name_${cleanAddr}_${item.id}`) || item.name;
-            const currentPrice = localStorage.getItem(`item_price_${cleanAddr}_${item.id}`) || ethers.formatUnits(item.price, 6);
+            const isAvailable = localStorage.getItem(`item_available_${userAddress}_${item.id}`) !== 'false';
+            const currentName = localStorage.getItem(`item_name_${userAddress}_${item.id}`) || item.name;
+            const currentPrice = localStorage.getItem(`item_price_${userAddress}_${item.id}`) || ethers.formatUnits(item.price, 6);
+            const foodImgUrl = localStorage.getItem(`item_img_${userAddress}_${item.id}`);
 
-            const itemCard = document.createElement('div');
-            itemCard.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm";
-            itemCard.innerHTML = `
-                <div>
-                    <p class="font-semibold text-slate-900">${currentName} <span class="text-xs ${isAvailable ? 'text-green-600 bg-green-50 px-2 py-0.5 rounded' : 'text-red-600 bg-red-50 px-2 py-0.5 rounded'}">${isAvailable ? 'Available' : 'Not Available'}</span></p>
-                    <p class="text-amber-700 text-xs">${currentPrice} USDC</p>
+            const imgElement = foodImgUrl ? `<img src="${foodImgUrl}" class="w-12 h-12 object-cover rounded-lg border">` : `<div class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center text-xl">🍔</div>`;
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = "flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 gap-3";
+            itemDiv.innerHTML = `
+                <div class="flex items-center gap-3 overflow-hidden">
+                    ${imgElement}
+                    <div class="truncate">
+                        <h5 class="font-bold text-sm text-slate-900 truncate">${currentName}</h5>
+                        <p class="text-xs text-amber-700 font-semibold">${currentPrice} USDC</p>
+                    </div>
                 </div>
-                <div class="flex gap-1.5 flex-wrap">
-                    <button onclick="toggleAvailability('${cleanAddr}', ${item.id})" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${isAvailable ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}">${isAvailable ? 'Mark Unavailable' : 'Mark Available'}</button>
-                    <button onclick="editItemPrompt('${cleanAddr}', ${item.id}, '${currentName}', '${currentPrice}')" class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-semibold hover:bg-blue-100">Edit</button>
-                    <button onclick="deleteItem('${cleanAddr}', ${item.id})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold hover:bg-red-100">Delete</button>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="toggleItemAvailability('${userAddress}', ${item.id})" class="text-xs px-2.5 py-1.5 rounded-lg font-semibold border ${isAvailable ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'}">
+                        ${isAvailable ? 'Available' : 'Unavailable'}
+                    </button>
+                    <button onclick="deleteShopItem('${userAddress}', ${item.id})" class="text-xs px-2.5 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-semibold hover:bg-red-100">
+                        Delete
+                    </button>
                 </div>
             `;
-            dashMenuContainer.appendChild(itemCard);
+            container.appendChild(itemDiv);
         });
     } catch (err) {
         console.error("Error loading owner dashboard menu:", err);
     }
 }
 
-function toggleAvailability(shopOwner, itemId) {
-    const currentStatus = localStorage.getItem(`item_available_${shopOwner}_${itemId}`) !== 'false';
-    const newStatus = !currentStatus;
-    localStorage.setItem(`item_available_${shopOwner}_${itemId}`, newStatus.toString());
-    alert(newStatus ? "Item is now Available!" : "Item marked as Not Available!");
+function toggleItemAvailability(ownerAddr, itemId) {
+    const currentStatus = localStorage.getItem(`item_available_${ownerAddr}_${itemId}`) !== 'false';
+    localStorage.setItem(`item_available_${ownerAddr}_${itemId}`, (!currentStatus).toString());
     loadOwnerDashboardMenu();
 }
 
-function editItemPrompt(shopOwner, itemId, oldName, oldPrice) {
-    const newName = prompt("Enter new item name:", oldName);
-    if (newName === null) return;
-    const newPrice = prompt("Enter new item price (USDC):", oldPrice);
-    if (newPrice === null) return;
-
-    if (!newName.trim() || !newPrice.trim()) {
-        return alert("Fields cannot be empty.");
-    }
-
-    localStorage.setItem(`item_name_${shopOwner}_${itemId}`, newName.trim());
-    localStorage.setItem(`item_price_${shopOwner}_${itemId}`, newPrice.trim());
-    alert("Item updated successfully!");
-    loadOwnerDashboardMenu();
-}
-
-function deleteItem(shopOwner, itemId) {
+function deleteShopItem(ownerAddr, itemId) {
     if (confirm("Are you sure you want to delete this item?")) {
-        localStorage.setItem(`item_deleted_${shopOwner}_${itemId}`, 'true');
-        alert("Item deleted successfully!");
+        localStorage.setItem(`item_deleted_${ownerAddr}_${itemId}`, 'true');
         loadOwnerDashboardMenu();
     }
 }
 
-async function buyItem(shopOwner, itemIndex, priceInUSDC) {
-    if (!signer) return alert("Please connect wallet to buy.");
+async function buyItem(shopOwner, itemIndex, priceStr) {
+    if (!cafePayContract || !usdcContract) return alert("Please connect wallet first.");
     try {
-        const parsedAmount = ethers.parseUnits(priceInUSDC.toString(), 6);
+        const parsedPrice = ethers.parseUnits(priceStr, 6);
         const allowance = await usdcContract.allowance(userAddress, CONTRACT_ADDRESS);
-        if (allowance < parsedAmount) {
-            const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, parsedAmount);
+        if (allowance < parsedPrice) {
+            alert("Approval needed. Please approve USDC spending.");
+            const approveTx = await usdcContract.approve(CONTRACT_ADDRESS, parsedPrice);
             await approveTx.wait();
         }
-        const buyTx = await cafePayContract.buyItem(shopOwner, itemIndex);
-        await buyTx.wait();
-        alert("Payment successful!");
+        const tx = await cafePayContract.buyItem(shopOwner, itemIndex);
+        await tx.wait();
+        alert("Payment successful! Item purchased.");
     } catch (err) {
-        alert("Transaction failed: " + (err.reason || err.message));
-    }
-}
-
-async function checkOwnerShopStatus() {
-    if (!userAddress) return;
-    try {
-        const cleanAddress = ethers.getAddress(userAddress);
-        const shop = await readOnlyCafePayContract.shops(cleanAddress);
-        if (shop.exists) {
-            document.getElementById('card-register').classList.add('hidden');
-            document.getElementById('card-dashboard').classList.remove('hidden');
-            const shopName = shop.shopName || shop[0];
-            document.getElementById('dash-title').innerText = `Dashboard: ${shopName}`;
-            const logoUrl = localStorage.getItem(`shop_logo_${cleanAddress}`);
-            if (logoUrl) {
-                document.getElementById('dash-shop-logo').innerHTML = `<img src="${logoUrl}" class="w-full h-full object-cover">`;
-            }
-        }
-    } catch (err) {
-        console.error("Error checking shop status:", err);
+        alert("Payment error: " + (err.reason || err.message));
     }
 }
