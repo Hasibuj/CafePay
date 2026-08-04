@@ -1,160 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CaféPay — Multi-Tenant Web3 Coffee Marketplace</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        :root {
-            --bg-color: #0d1117;
-            --glass-bg: rgba(22, 27, 34, 0.75);
-            --border-color: rgba(255, 255, 255, 0.1);
-            --accent-color: #3b82f6;
-            --accent-hover: #2563eb;
-            --text-main: #f0f6fc;
-            --text-muted: #8b949e;
-            --success: #238636;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            margin-bottom: 24px;
-        }
-
-        h1 { margin: 0; font-size: 1.5rem; color: var(--accent-color); }
-
-        button {
-            background: var(--accent-color);
-            color: #fff;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        button:hover { background: var(--accent-hover); }
-
-        .card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
-        }
-
-        .menu-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        #qr-code { margin-top: 12px; background: white; padding: 10px; display: inline-block; border-radius: 8px; }
-        .hidden { display: none; }
-        #status-bar { padding: 12px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
-        .status-info { background: rgba(59, 130, 246, 0.1); color: var(--accent-color); }
-        .status-success { background: rgba(35, 134, 54, 0.2); color: #3fb950; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CaféPay — Web3 Coffee Marketplace</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Ethers.js v6 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <style>
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+  </style>
 </head>
-<body>
+<body class="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 min-h-screen text-slate-800 font-sans">
 
-<div class="container">
-    <header>
-        <h1>☕ CaféPay</h1>
-        <button id="btn-connect">Connect Wallet</button>
-    </header>
-
-    <div id="status-bar" class="status-info hidden"></div>
-
-    <!-- Shop Owner View -->
-    <div id="view-owner" class="hidden">
-        <div class="card" id="card-register">
-            <h2>Register Your Store</h2>
-            <div class="form-group">
-                <label>Store Name</label>
-                <input type="text" id="reg-shop-name" placeholder="e.g. Crypto Roasters">
-            </div>
-            <button id="btn-register">Register Shop</button>
-        </div>
-
-        <div class="card hidden" id="card-dashboard">
-            <h2 id="dash-title">Shop Dashboard</h2>
-            <h3>Add Menu Item</h3>
-            <div class="form-group">
-                <input type="text" id="item-name" placeholder="Item Name (e.g. Espresso)">
-                <input type="number" step="0.01" id="item-price" placeholder="Price in USDC (e.g. 3.50)">
-            </div>
-            <button id="btn-add-item">Add to Menu</button>
-            <hr style="border-color: var(--border-color); margin: 20px 0;">
-            <h3>Your Store Link & QR Code</h3>
-            <p><a id="store-link" href="#" target="_blank" style="color: var(--accent-color);"></a></p>
-            <div id="qr-code"></div>
-        </div>
+  <!-- Navigation Bar -->
+  <header class="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-amber-200/50 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="text-3xl">☕</span>
+        <h1 class="text-2xl font-black tracking-tight text-amber-900">Café<span class="text-amber-600">Pay</span></h1>
+      </div>
+      <button id="btn-connect" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition duration-200">
+        Connect Wallet
+      </button>
     </div>
+  </header>
 
-    <!-- Customer View -->
-    <div id="view-customer" class="hidden">
-        <div class="card">
-            <h2 id="cust-shop-name">Loading Store...</h2>
-            <p id="cust-shop-owner" style="color: var(--text-muted); font-size: 0.9rem;"></p>
-            <div id="customer-menu" class="menu-grid"></div>
+  <!-- Status Notification Bar -->
+  <div class="max-w-4xl mx-auto px-4 mt-4">
+    <div id="status-bar" class="hidden p-4 rounded-xl text-center font-medium shadow-sm transition-all duration-300 bg-amber-100 border border-amber-300 text-amber-900"></div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="max-w-5xl mx-auto px-4 py-8">
+
+    <!-- SHOP OWNER VIEW -->
+    <section id="view-owner" class="hidden space-y-8">
+      
+      <!-- Hero Banner for Owner -->
+      <div class="text-center max-w-2xl mx-auto space-y-3">
+        <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight">Decentralized Coffee Shop Management</h2>
+        <p class="text-slate-600 text-lg">Register your shop on Arc Network and start accepting instant USDC payments with zero hassle.</p>
+      </div>
+
+      <!-- Registration Card -->
+      <div id="card-register" class="max-w-md mx-auto glass-card p-8 rounded-2xl shadow-xl space-y-5">
+        <h3 class="text-xl font-bold text-slate-900">Register Your Store</h3>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Shop Name</label>
+          <input type="text" id="reg-shop-name" placeholder="e.g. Crypto Brew Café" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white/80">
         </div>
-    </div>
-</div>
+        <button id="btn-register" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl shadow-md transition duration-200">
+          Create Shop
+        </button>
+      </div>
 
-<script src="app.js"></script>
+      <!-- Owner Dashboard -->
+      <div id="card-dashboard" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- Add Menu Item Box -->
+        <div class="glass-card p-6 rounded-2xl shadow-lg space-y-4">
+          <h3 id="dash-title" class="text-xl font-bold text-amber-900">Dashboard</h3>
+          <p class="text-sm text-slate-500">Add new items to your digital menu.</p>
+          
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Item Name</label>
+              <input type="text" id="item-name" placeholder="Espresso, Latte..." class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-amber-500 bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Price (USDC)</label>
+              <input type="number" step="0.01" id="item-price" placeholder="2.50" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-amber-500 bg-white">
+            </div>
+            <button id="btn-add-item" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg shadow transition">
+              + Add to Menu
+            </button>
+          </div>
+        </div>
+
+        <!-- Store QR Code Box -->
+        <div class="glass-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center space-y-4">
+          <h4 class="text-lg font-bold text-slate-900">Your QR Storefront Link</h4>
+          <p class="text-xs text-slate-500 max-w-xs">Scan or share this link with customers to display your menu and accept payments.</p>
+          
+          <div id="qr-code" class="p-3 bg-white rounded-xl shadow border border-slate-200"></div>
+          
+          <a id="store-link" target="_blank" class="text-xs font-medium text-amber-700 hover:underline break-all max-w-xs"></a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CUSTOMER STOREFRONT VIEW -->
+    <section id="view-customer" class="hidden space-y-8">
+      
+      <!-- Store Header -->
+      <div class="text-center space-y-2">
+        <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full uppercase tracking-wider">Storefront</span>
+        <h2 id="cust-shop-name" class="text-4xl font-black text-slate-900">Loading Shop...</h2>
+        <p id="cust-shop-owner" class="text-xs font-mono text-slate-500"></p>
+      </div>
+
+      <!-- Customer Menu Grid -->
+      <div id="customer-menu" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Menu Items will render here dynamically -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- External Script -->
+  <script src="app.js"></script>
 </body>
 </html>
